@@ -778,8 +778,10 @@
 				<property name="site" value="${build.relink_site}" override="true" />
 			</then>
 		</if>
+		<phingcall target="onBeforeRelink" />
 
         <relinksite site="${site}" repository="${dirs.root}" />
+		<phingcall target="onAfterRelink" />
     </target>
 
     <!--
