@@ -1142,12 +1142,14 @@
             <istrue value="${build.fof}" />
             <then>
                 <if>
-                    <or>
+                    <!--<or>
                         <contains string="${version}" substring="rev" />
                         <contains string="${version}" substring="dev" />
                         <contains string="${version}" substring="git" />
                         <contains string="${version}" substring="svn" />
-                    </or>
+                    </or>-->
+					<!-- Always use a stable version of fof -->
+					<isfalse value="${build.fof}" />
                     <then>
                         <!-- Start by building a dev build of FOF... -->
                         <gitversion workingcopy="${dirs.root}/../fof3" propertyname="git.fof.lastrevision" />
@@ -1243,12 +1245,14 @@ will be included instead. THIS IS THE ONLY RECOMMENDED METHOD FOR PUBLIC RELEASE
 			<istrue value="${build.fof4}" />
 			<then>
 				<if>
-					<or>
+					<!--<or>
 						<contains string="${version}" substring="rev" />
 						<contains string="${version}" substring="dev" />
 						<contains string="${version}" substring="git" />
 						<contains string="${version}" substring="svn" />
-					</or>
+					</or> -->
+					<!-- Always use a stable version in build -->
+					<isfalse value="${build.fof4}" />
 					<then>
 						<!-- Start by building a dev build of FOF 4.x... -->
 						<gitversion workingcopy="${dirs.root}/../fof4" propertyname="git.fof4.lastrevision" />
@@ -1344,12 +1348,14 @@ will be included instead. THIS IS THE ONLY RECOMMENDED METHOD FOR PUBLIC RELEASE
 			<istrue value="${build.fef}" />
 			<then>
 				<if>
-					<or>
+					<!--<or>
 						<contains string="${version}" substring="rev" />
 						<contains string="${version}" substring="dev" />
 						<contains string="${version}" substring="git" />
 						<contains string="${version}" substring="svn" />
-					</or>
+					</or>-->
+					<!--Always use last stable version of fef -->
+					<isfalse value="${build.fef}" />
 					<then>
 						<!-- Start by building a dev build of FEF... -->
 						<gitversion workingcopy="${dirs.root}/../fef" propertyname="git.fef.lastrevision" />
