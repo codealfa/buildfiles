@@ -68,6 +68,9 @@ class Component extends AbstractScanner
 			$result->extension = 'com_' . $result->extension;
 		}
 
+		//Strip _pro from end of extension name
+		$result->extension = str_replace('_pro', '', $result->extension);
+
 		// Get the <files> tags for front and back-end
 		$this->getFilesFoldersFromManifest($result, $xmlDoc);
 
