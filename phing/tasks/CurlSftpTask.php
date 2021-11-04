@@ -16,7 +16,7 @@ class CurlSftpTask extends ScpTask
 	{
 		$p = $this->getProject();
 
-		$this->useSSH2 = function_exists('ssh2_connect');
+		$this->useSSH2 = false;//function_exists('ssh2_connect');
 
 		if ($this->file == "" && empty($this->filesets))
 		{
