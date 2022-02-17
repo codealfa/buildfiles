@@ -706,8 +706,9 @@
     scp.password                SFTP password
     scp.dir                     SFTP initial directory
     -->
-    <target name="ftpdeploy" depends="git">
-        <gitversion workingcopy="${dirs.root}" propertyname="git.lastrevision" />
+   <!-- <target name="ftpdeploy" depends="git"> -->
+	<target name="ftpdeploy">
+		<gitversion workingcopy="${dirs.root}" propertyname="git.lastrevision" />
 
         <if>
             <isset property="ftpdeploy.pattern.core" />
