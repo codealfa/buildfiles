@@ -823,20 +823,8 @@
 	<target name="xml-version" depends="setup-properties">
 
 		<if>
-			<and>
-				<not>
-					<contains string="${version}" substring="rev"/>
-				</not>
-				<not>
-					<contains string="${version}" substring="dev"/>
-				</not>
-				<not>
-					<contains string="${version}" substring="git"/>
-				</not>
-				<not>
-					<contains string="${version}" substring="svn"/>
-				</not>
-			</and>
+			<matches string="${version}" pattern="^\d+\.\d+\.\d+$" />
+
 			<then>
 				<xmlversion repository="${dirs.root}" version="${version}" date="${build.date}"/>
 			</then>
