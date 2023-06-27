@@ -21,5 +21,10 @@
 	},
 	"suggest": {
 		"ext-ssh2": "*"
+	},
+	"config": {
+		"allow-plugins": {
+			"rector/extension-installer": true
+		}
 	}
 }

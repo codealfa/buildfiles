@@ -6,6 +6,7 @@
 
 # Composer
 vendor
+composer.phar
 
 # Used during development
 000
