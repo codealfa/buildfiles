@@ -147,6 +147,16 @@
 				</composer>
 			</then>
 		</if>
+		<if>
+			<available file="${dirs.composer_lib}/composer.json" type="file"/>
+			<then>
+				<composer composer="${bin.composer}" command="install" php="${system.php_cli}">
+					<arg value="-d" />
+					<arg path="${dirs.composer_lib}" />
+					<arg value="--no-dev" />
+				</composer>
+			</then>
+		</if>
     </target>
 
     <!--
