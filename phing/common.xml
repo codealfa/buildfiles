@@ -122,7 +122,7 @@
     building a package.
     -->
     <target name="new-release" description="Create afresh the release directory"
-			depends="composer-install,link">
+			depends="link, composer-install">
         <delete dir="${dirs.release}" quiet="true" includeemptydirs="true" />
         <mkdir dir="${dirs.release}" />
     </target>
