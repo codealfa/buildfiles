@@ -933,6 +933,22 @@
 			</then>
 		</if>
 
+		<!-- Copy the autoload.php file -->
+		<if>
+			<available file="${phing.dir}/templates/autoload.php" property="completely.ignored"/>
+			<then>
+				<copy file="${phing.dir}/templates/autoload.php" tofile="${dirs.component}/backend/autoload.php"
+					  overwrite="true">
+					<filterchain>
+						<replacetokens begintoken="##" endtoken="##">
+							<token key="LIBDIR" value="lib"/>
+							<token key="PREFIX" value="scoper-"/>
+						</replacetokens>
+					</filterchain>
+				</copy>
+			</then>
+		</if>
+
 		<!-- Create the package ZIP file -->
 		<zipme basedir="${dirs.component}" destfile="${dirs.release}/${build.package_name}" includeemptydirs="true">
 			<fileset refid="${build.refid}" />
