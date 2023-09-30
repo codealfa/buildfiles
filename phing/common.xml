@@ -144,6 +144,7 @@
 					<arg value="-d" />
 					<arg path="${dirs.composer}" />
 					<arg value="--no-dev" />
+					<arg value="--ignore-platform-req=ext-redis" />
 				</composer>
 			</then>
 		</if>
@@ -154,6 +155,7 @@
 					<arg value="-d" />
 					<arg path="${dirs.composer_lib}" />
 					<arg value="--no-dev" />
+					<arg value="--ignore-platform-req=ext-redis" />
 				</composer>
 			</then>
 		</if>
