@@ -145,6 +145,8 @@
 					<arg path="${dirs.composer}" />
 					<arg value="--no-dev" />
 					<arg value="--ignore-platform-req=ext-redis" />
+					<arg value="--ignore-platform-req=ext-apcu" />
+					<arg value="--ignore-platform-req=ext-memcached" />
 				</composer>
 			</then>
 		</if>
@@ -156,6 +158,8 @@
 					<arg path="${dirs.composer_lib}" />
 					<arg value="--no-dev" />
 					<arg value="--ignore-platform-req=ext-redis" />
+					<arg value="--ignore-platform-req=ext-apcu" />
+					<arg value="--ignore-platform-req=ext-memcached" />
 				</composer>
 			</then>
 		</if>
