@@ -33,5 +33,23 @@
       "rector/extension-installer": true,
       "php-http/discovery": true
     }
+  },
+  "scripts": {
+    "npm-deps": [
+      "npm install"
+    ],
+    "post-install-cmd": [
+      "@npm-deps"
+    ],
+    "post-update-cmd": [
+      "npm update",
+      "@npm-deps"
+    ],
+    "pre-archive-cmd": [
+      "@npm-deps"
+    ],
+    "post-create-project-cmd": [
+      "@composer dump-autoload -a"
+    ]
   }
 }

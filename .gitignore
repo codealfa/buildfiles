@@ -1,11 +1,11 @@
 # PhpStorm
-.idea/
+/.idea
 
 # Cache
 /cache
 
 # Composer
-vendor
+/vendor
 
-# Used during development
-000
+# NPM
+/node_modules
