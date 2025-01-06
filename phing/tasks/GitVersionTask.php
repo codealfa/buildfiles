@@ -1,7 +1,7 @@
 <?php
 /**
  * @package   buildfiles
- * @copyright Copyright (c)2010-2024 Nicholas K. Dionysopoulos / Akeeba Ltd
+ * @copyright Copyright (c)2010-2025 Nicholas K. Dionysopoulos / Akeeba Ltd
  * @license   GNU General Public License version 3, or later
  */
 
@@ -17,7 +17,7 @@ putenv("DYLD_LIBRARY_PATH=''");
  * Git latest tree hash to Phing property
  *
  * @package   akeebabuilder
- * @copyright Copyright (c)2010-2024 Nicholas K. Dionysopoulos / Akeeba Ltd
+ * @copyright Copyright (c)2010-2025 Nicholas K. Dionysopoulos / Akeeba Ltd
  * @license   GNU GPL version 3 or, at your option, any later version
  * @version   $Id$
  * @author    nicholas
