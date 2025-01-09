@@ -5,12 +5,12 @@
  * @license   GNU General Public License version 3, or later
  */
 
-namespace Akeeba\LinkLibrary\Scanner;
+namespace Akeeba\BuildFiles\LinkLib\Scanner;
 
-use Akeeba\LinkLibrary\LinkHelper;
-use Akeeba\LinkLibrary\MapResult;
-use Akeeba\LinkLibrary\ScannerInterface;
-use Akeeba\LinkLibrary\ScanResult;
+use Akeeba\BuildFiles\LinkLib\LinkHelper;
+use Akeeba\BuildFiles\LinkLib\MapResult;
+use Akeeba\BuildFiles\LinkLib\ScannerInterface;
+use Akeeba\BuildFiles\LinkLib\ScanResult;
 use DirectoryIterator;
 use DOMDocument;
 use RuntimeException;

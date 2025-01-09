@@ -5,17 +5,17 @@
  * @license   GNU General Public License version 3, or later
  */
 
-namespace Akeeba\LinkLibrary\Scanner;
+namespace Akeeba\BuildFiles\LinkLib\Scanner;
 
-use Akeeba\LinkLibrary\MapResult;
-use Akeeba\LinkLibrary\ScannerInterface;
-use Akeeba\LinkLibrary\ScanResult;
+use Akeeba\BuildFiles\LinkLib\MapResult;
+use Akeeba\BuildFiles\LinkLib\ScannerInterface;
+use Akeeba\BuildFiles\LinkLib\ScanResult;
 use RuntimeException;
 
 /**
- * Scanner class for Joomla! templates
+ * Scanner class for Joomla! modules
  */
-class Template extends AbstractScanner
+class Module extends AbstractScanner
 {
 	/**
 	 * Constructor.
@@ -28,7 +28,7 @@ class Template extends AbstractScanner
 	 */
 	public function __construct($extensionRoot, $languageRoot = null)
 	{
-		$this->manifestExtensionType = 'template';
+		$this->manifestExtensionType = 'module';
 
 		parent::__construct($extensionRoot, $languageRoot);
 	}
@@ -45,24 +45,36 @@ class Template extends AbstractScanner
 
 		if (empty($xmlDoc))
 		{
-			throw new RuntimeException("Cannot get XML manifest for template in {$this->extensionRoot}");
+			throw new RuntimeException("Cannot get XML manifest for module in {$this->extensionRoot}");
 		}
 
 		// Intiialize the result
 		$result                = new ScanResult();
-		$result->extensionType = 'template';
+		$result->extensionType = 'module';
 
 		// Get the extension name
-		$template = strtolower($xmlDoc->getElementsByTagName('name')->item(0)->nodeValue);
+		$files  = $xmlDoc->getElementsByTagName('files')->item(0)->childNodes;
+		$module = null;
 
-		if (is_null($template))
+		/** @var \DOMElement $file */
+		foreach ($files as $file)
 		{
-			throw new RuntimeException("Cannot find the template name in the XML manifest for {$this->extensionRoot}");
+			if ($file->hasAttributes())
+			{
+				$module = $file->getAttribute('module');
+
+				break;
+			}
 		}
 
-		$result->extension = $template;
+		if (is_null($module))
+		{
+			throw new RuntimeException("Cannot find the module name in the XML manifest for {$this->extensionRoot}");
+		}
 
-		// Is this is a site or administrator template?
+		$result->extension = $module;
+
+		// Is this is a site or administrator module?
 		$isSite = $xmlDoc->documentElement->getAttribute('client') == 'site';
 
 		// Get the main folder to link
@@ -115,9 +127,9 @@ class Template extends AbstractScanner
 		// Scan language files in a separate root, if one is specified
 		if (!empty($this->languageRoot))
 		{
-			$langPath  = $this->languageRoot . '/templates/';
+			$langPath  = $this->languageRoot . '/modules/';
 			$langPath .= $isSite ? 'site/' : 'admin/';
-			$langPath .= $template;
+			$langPath .= substr($module, 4);
 			$langFiles = $this->scanLanguageFolder($langPath);
 
 			if (!empty($langFiles))
@@ -157,7 +169,7 @@ class Template extends AbstractScanner
 			$source = $scan->adminFolder;
 		}
 
-		$basePath .= 'templates/' . $scan->extension;
+		$basePath .= 'modules/' . $scan->extension;
 
 		// Frontend and backend directories
 		$dirs = [
@@ -170,7 +182,7 @@ class Template extends AbstractScanner
 	}
 
 	/**
-	 * Detect extensions of type Template in the repository and return an array of ScannerInterface objects for them.
+	 * Detect extensions of type Module in the repository and return an array of ScannerInterface objects for them.
 	 *
 	 * @param   string  $repositoryRoot  The repository root to scan
 	 *
@@ -178,7 +190,7 @@ class Template extends AbstractScanner
 	 */
 	public static function detect($repositoryRoot): array
 	{
-		$path       = $repositoryRoot . '/templates';
+		$path       = $repositoryRoot . '/modules';
 		$sections   = ['site', 'admin'];
 		$extensions = [];
 
@@ -197,7 +209,7 @@ class Template extends AbstractScanner
 				continue;
 			}
 
-			// Loop all templates in the section
+			// Loop all modules in the section
 			$di = new \DirectoryIterator($sectionPath);
 
 			foreach ($di as $folder)
@@ -215,7 +227,7 @@ class Template extends AbstractScanner
 
 				if ($translationsRoot)
 				{
-					$languageRoot = $translationsRoot . '/templates/' . $section . '/' . $extName;
+					$languageRoot = $translationsRoot . '/modules/' . $section . '/' . $extName;
 
 					if (!is_dir($languageRoot))
 					{
@@ -224,11 +236,12 @@ class Template extends AbstractScanner
 				}
 
 				// Get the extension ScannerInterface object
-				$extension    = new Template($folder->getRealPath(), $languageRoot);
+				$extension    = new Module($folder->getRealPath(), $languageRoot);
 				$extensions[] = $extension;
 			}
 		}
 
 		return $extensions;
 	}
+
 }

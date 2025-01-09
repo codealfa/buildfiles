@@ -7,10 +7,10 @@
 
 namespace tasks;
 
-use Akeeba\LinkLibrary\LinkHelper;
+use Akeeba\BuildFiles\LinkLib\LinkHelper;
 use Phing\Task\System\SymlinkTask;
 
-require_once __DIR__ . '/../../linklib/include.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 /**
  * Class LinkTask

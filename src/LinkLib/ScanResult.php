@@ -1,11 +1,11 @@
 <?php
-/**
+/*
  * @package   buildfiles
- * @copyright Copyright (c)2010-2025 Nicholas K. Dionysopoulos / Akeeba Ltd
+ * @copyright (c)2025 Nicholas K. Dionysopoulos / Akeeba Ltd
  * @license   GNU General Public License version 3, or later
  */
 
-namespace Akeeba\LinkLibrary;
+namespace Akeeba\BuildFiles\LinkLib;
 
 /**
  * Describes a folder mapping result returned by Scanner classes

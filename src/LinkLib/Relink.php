@@ -1,20 +1,20 @@
 <?php
-/**
+/*
  * @package   buildfiles
- * @copyright Copyright (c)2010-2025 Nicholas K. Dionysopoulos / Akeeba Ltd
+ * @copyright (c)2025 Nicholas K. Dionysopoulos / Akeeba Ltd
  * @license   GNU General Public License version 3, or later
  */
 
-namespace Akeeba\LinkLibrary;
+namespace Akeeba\BuildFiles\LinkLib;
 
-use Akeeba\LinkLibrary\Scanner\AbstractScanner;
-use Akeeba\LinkLibrary\Scanner\Component;
-use Akeeba\LinkLibrary\Scanner\File;
-use Akeeba\LinkLibrary\Scanner\Library;
-use Akeeba\LinkLibrary\Scanner\Module;
-use Akeeba\LinkLibrary\Scanner\Package;
-use Akeeba\LinkLibrary\Scanner\Plugin;
-use Akeeba\LinkLibrary\Scanner\Template;
+use Akeeba\BuildFiles\LinkLib\Scanner\AbstractScanner;
+use Akeeba\BuildFiles\LinkLib\Scanner\Component;
+use Akeeba\BuildFiles\LinkLib\Scanner\File;
+use Akeeba\BuildFiles\LinkLib\Scanner\Library;
+use Akeeba\BuildFiles\LinkLib\Scanner\Module;
+use Akeeba\BuildFiles\LinkLib\Scanner\Package;
+use Akeeba\BuildFiles\LinkLib\Scanner\Plugin;
+use Akeeba\BuildFiles\LinkLib\Scanner\Template;
 use RuntimeException;
 
 /**

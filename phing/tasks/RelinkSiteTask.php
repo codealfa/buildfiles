@@ -7,7 +7,7 @@
 
 namespace tasks;
 
-use Akeeba\LinkLibrary\Relink;
+use Akeeba\BuildFiles\LinkLib\Relink;
 use Phing\Exception\BuildException;
 use Phing\Project;
 use Phing\Task;

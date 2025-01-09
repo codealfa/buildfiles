@@ -7,7 +7,7 @@
 
 namespace tasks;
 
-use Akeeba\LinkLibrary\ProjectLinker;
+use Akeeba\BuildFiles\LinkLib\ProjectLinker;
 use Phing\Exception\BuildException;
 use Phing\Project;
 use Phing\Task;
@@ -100,9 +100,9 @@ class RelinkWPSiteTask extends Task
 			throw new BuildException("Repository folder {$this->repository} is not a valid directory");
 		}
 
-		if (!class_exists('Akeeba\\LinkLibrary\\ProjectLinker'))
+		if (!class_exists(ProjectLinker::class))
 		{
-			require_once __DIR__ . '/../linklib/include.php';
+			require_once __DIR__ . '/../../vendor/autoload.php';
 		}
 
 		$linker = new ProjectLinker();

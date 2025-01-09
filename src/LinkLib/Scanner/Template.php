@@ -5,17 +5,17 @@
  * @license   GNU General Public License version 3, or later
  */
 
-namespace Akeeba\LinkLibrary\Scanner;
+namespace Akeeba\BuildFiles\LinkLib\Scanner;
 
-use Akeeba\LinkLibrary\MapResult;
-use Akeeba\LinkLibrary\ScannerInterface;
-use Akeeba\LinkLibrary\ScanResult;
+use Akeeba\BuildFiles\LinkLib\MapResult;
+use Akeeba\BuildFiles\LinkLib\ScannerInterface;
+use Akeeba\BuildFiles\LinkLib\ScanResult;
 use RuntimeException;
 
 /**
- * Scanner class for Joomla! plugins
+ * Scanner class for Joomla! templates
  */
-class Plugin extends AbstractScanner
+class Template extends AbstractScanner
 {
 	/**
 	 * Constructor.
@@ -28,7 +28,7 @@ class Plugin extends AbstractScanner
 	 */
 	public function __construct($extensionRoot, $languageRoot = null)
 	{
-		$this->manifestExtensionType = 'plugin';
+		$this->manifestExtensionType = 'template';
 
 		parent::__construct($extensionRoot, $languageRoot);
 	}
@@ -45,54 +45,35 @@ class Plugin extends AbstractScanner
 
 		if (empty($xmlDoc))
 		{
-			throw new RuntimeException("Cannot get XML manifest for plugin in {$this->extensionRoot}");
+			throw new RuntimeException("Cannot get XML manifest for template in {$this->extensionRoot}");
 		}
 
 		// Intiialize the result
 		$result                = new ScanResult();
-		$result->extensionType = 'plugin';
+		$result->extensionType = 'template';
 
 		// Get the extension name
-		$files  = $xmlDoc->getElementsByTagName('files')->item(0)->childNodes;
-		$plugin = null;
+		$template = strtolower($xmlDoc->getElementsByTagName('name')->item(0)->nodeValue);
 
-		/** @var \DOMElement $file */
-		foreach ($files as $file)
+		if (is_null($template))
 		{
-			if ($file->hasAttributes())
-			{
-				$plugin = $file->getAttribute('plugin');
-
-				break;
-			}
+			throw new RuntimeException("Cannot find the template name in the XML manifest for {$this->extensionRoot}");
 		}
 
-		/**
-		 * Native Joomla 4 plugins do not have the plugin attribute in a file entry. They have a namespace element under
-		 * the root and the plugin name is the name of the folder.
-		 */
-		if (is_null($plugin))
-		{
-			$hasNamespace = $xmlDoc->getElementsByTagName('namespace')->count();
+		$result->extension = $template;
 
-			if ($hasNamespace)
-			{
-				$plugin = basename($this->extensionRoot);
-			}
-		}
-
-		if (is_null($plugin))
-		{
-			throw new RuntimeException("Cannot find the plugin name in the XML manifest for {$this->extensionRoot}");
-		}
-
-		$result->extension = $plugin;
-
-		// Is this is a site or administrator module?
-		$result->pluginFolder = $xmlDoc->documentElement->getAttribute('group');
+		// Is this is a site or administrator template?
+		$isSite = $xmlDoc->documentElement->getAttribute('client') == 'site';
 
 		// Get the main folder to link
-		$result->siteFolder = $this->extensionRoot;
+		if ($isSite)
+		{
+			$result->siteFolder = $this->extensionRoot;
+		}
+		else
+		{
+			$result->adminFolder = $this->extensionRoot;
+		}
 
 		// Get the media folder
 		$result->mediaFolder      = null;
@@ -119,7 +100,14 @@ class Plugin extends AbstractScanner
 				continue;
 			}
 
-			// Plugin language files always go to the backend language folder
+			if ($isSite)
+			{
+				$result->siteLangFiles = $languageFiles;
+				$result->siteLangPath  = $languageRoot;
+
+				continue;
+			}
+
 			$result->adminLangFiles = $languageFiles;
 			$result->adminLangPath  = $languageRoot;
 		}
@@ -127,16 +115,25 @@ class Plugin extends AbstractScanner
 		// Scan language files in a separate root, if one is specified
 		if (!empty($this->languageRoot))
 		{
-			$langPath  = $this->languageRoot . '/plugins/' . $result->pluginFolder . '/' . $result->extension;
+			$langPath  = $this->languageRoot . '/templates/';
+			$langPath .= $isSite ? 'site/' : 'admin/';
+			$langPath .= $template;
 			$langFiles = $this->scanLanguageFolder($langPath);
 
 			if (!empty($langFiles))
 			{
-				$result->adminLangPath  = $langPath;
-				$result->adminLangFiles = $langFiles;
+				if ($isSite)
+				{
+					$result->siteLangPath  = $langPath;
+					$result->siteLangFiles = $langFiles;
+				}
+				else
+				{
+					$result->adminLangPath  = $langPath;
+					$result->adminLangFiles = $langFiles;
+				}
 			}
 		}
-
 
 		return $result;
 	}
@@ -151,11 +148,20 @@ class Plugin extends AbstractScanner
 		$scan = $this->getScanResults();
 		$result = parent::map();
 
-		$basePath = $this->siteRoot . '/plugins/' . $scan->pluginFolder . '/' . $scan->extension;
+		$source = $scan->siteFolder;
+		$basePath = $this->siteRoot . '/';
+
+		if (!empty($scan->adminFolder))
+		{
+			$basePath .= 'administrator/';
+			$source = $scan->adminFolder;
+		}
+
+		$basePath .= 'templates/' . $scan->extension;
 
 		// Frontend and backend directories
 		$dirs = [
-			$scan->siteFolder => $basePath
+			$source => $basePath
 		];
 
 		$result->dirs = array_merge($result->dirs, $dirs);
@@ -164,7 +170,7 @@ class Plugin extends AbstractScanner
 	}
 
 	/**
-	 * Detect extensions of type Plugin in the repository and return an array of ScannerInterface objects for them.
+	 * Detect extensions of type Template in the repository and return an array of ScannerInterface objects for them.
 	 *
 	 * @param   string  $repositoryRoot  The repository root to scan
 	 *
@@ -172,7 +178,8 @@ class Plugin extends AbstractScanner
 	 */
 	public static function detect($repositoryRoot): array
 	{
-		$path       = $repositoryRoot . '/plugins';
+		$path       = $repositoryRoot . '/templates';
+		$sections   = ['site', 'admin'];
 		$extensions = [];
 
 		if (!is_dir($path))
@@ -180,30 +187,27 @@ class Plugin extends AbstractScanner
 			return $extensions;
 		}
 
-		// Scan the "plugins" repo folder for the sections (user, system, content, quickicon, somethingCustom, ...)
-		$outerDi = new \DirectoryIterator($path);
-
-		foreach ($outerDi as $sectionFolder)
+		// Loop both sections (site and admin)
+		foreach ($sections as $section)
 		{
-			if ($sectionFolder->isDot() || !$sectionFolder->isDir())
+			$sectionPath = $path . '/' . $section;
+
+			if (!is_dir($sectionPath))
 			{
 				continue;
 			}
 
-			$sectionPath = $sectionFolder->getRealPath();
-			$section = $sectionFolder->getFilename();
+			// Loop all templates in the section
+			$di = new \DirectoryIterator($sectionPath);
 
-			// Scan all plugin folders inside that section
-			$allPluginFolders = new \DirectoryIterator($sectionPath);
-
-			foreach ($allPluginFolders as $pluginFolder)
+			foreach ($di as $folder)
 			{
-				if ($pluginFolder->isDot() || !$pluginFolder->isDir())
+				if ($folder->isDot() || !$folder->isDir())
 				{
 					continue;
 				}
 
-				$extName = $pluginFolder->getFilename();
+				$extName = $folder->getFilename();
 
 				// Figure out the language root to use
 				$languageRoot     = null;
@@ -211,7 +215,7 @@ class Plugin extends AbstractScanner
 
 				if ($translationsRoot)
 				{
-					$languageRoot = $translationsRoot . '/plugins/' . $section . '/' . $extName;
+					$languageRoot = $translationsRoot . '/templates/' . $section . '/' . $extName;
 
 					if (!is_dir($languageRoot))
 					{
@@ -220,7 +224,7 @@ class Plugin extends AbstractScanner
 				}
 
 				// Get the extension ScannerInterface object
-				$extension    = new Plugin($pluginFolder->getRealPath(), $languageRoot);
+				$extension    = new Template($folder->getRealPath(), $languageRoot);
 				$extensions[] = $extension;
 			}
 		}

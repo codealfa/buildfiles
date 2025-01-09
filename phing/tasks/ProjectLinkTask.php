@@ -7,13 +7,13 @@
 
 namespace tasks;
 
-use Akeeba\LinkLibrary\ProjectLinker;
+use Akeeba\BuildFiles\LinkLib\ProjectLinker;
 use Phing\Exception\BuildException;
 use Phing\Project;
 use Phing\Task;
 use RuntimeException;
 
-require_once __DIR__ . '/../../linklib/include.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 /**
  * Class InternalLinkTask
