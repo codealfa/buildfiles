@@ -4,7 +4,8 @@
   "license": "GPL-3.0-or-later",
   "minimum-stability": "beta",
   "require": {
-    "php": "^7.4|^8.0",
+    "php": "^8.1",
+    "ext-zip": "*",
     "akeeba/s3": "dev-development",
     "composer/ca-bundle": "^1.2",
     "corneltek/getoptionkit": "^2.6.0",
@@ -22,8 +23,12 @@
     "ext-simplexml": "*",
     "ext-ssh2": "*",
     "ext-xsl": "*",
-    "ext-zip": "*",
     "ext-zlib": "*"
+  },
+  "autoload": {
+    "psr-4" : {
+      "Akeeba\\BuildFiles\\": "src"
+    }
   },
   "config": {
     "platform" : {
@@ -34,14 +39,21 @@
       "php-http/discovery": true
     }
   },
+  "extra" : {
+    "dbxsl" : {
+      "source": "https://github.com/docbook/xslt10-stylesheets/releases/download/release%2F1.79.2/docbook-xsl-1.79.2.zip"
+    }
+  },
   "scripts": {
     "npm-deps": [
       "npm install"
     ],
     "post-install-cmd": [
+      "\\Akeeba\\BuildFiles\\Composer\\InstallationScript::installDbXsl",
       "@npm-deps"
     ],
     "post-update-cmd": [
+      "\\Akeeba\\BuildFiles\\Composer\\InstallationScript::installDbXsl",
       "npm update",
       "@npm-deps"
     ],
@@ -49,6 +61,7 @@
       "@npm-deps"
     ],
     "post-create-project-cmd": [
+      "\\Akeeba\\BuildFiles\\Composer\\InstallationScript::installDbXsl",
       "@composer dump-autoload -a"
     ]
   }
