@@ -147,7 +147,7 @@ class JPAMaker
 			}
 
 			// Proceed with compression
-			$zdata = @gzcompress($udata, 9, ZLIB_ENCODING_GZIP);
+			$zdata = @gzcompress($udata, 9);
 
 			if ($zdata === false)
 			{
