@@ -41,6 +41,8 @@ class AutoVersionTask extends \Phing\Task
 
 	private $useCommitHash = true;
 
+	private $autoBump = true;
+
 	public function getChangelog(): string
 	{
 		return $this->changelog;
@@ -110,7 +112,9 @@ class AutoVersionTask extends \Phing\Task
 		 */
 		elseif (empty($latestGitTag) && !empty($changelogVersion))
 		{
-			$version = $this->bumpVersion($changelogVersion, true);
+			$version = $this->autoBump
+				? $this->bumpVersion($changelogVersion, true)
+				: $changelogVersion;
 		}
 		/**
 		 * There are three cases where we need to bump the version number:
@@ -127,7 +131,9 @@ class AutoVersionTask extends \Phing\Task
 			|| version_compare($changelogVersion, $latestGitTag, 'le')
 		)
 		{
-			$version = $this->bumpVersion($latestGitTag ?: $changelogVersion);
+			$version = $this->autoBump
+				? $this->bumpVersion($latestGitTag ?: $changelogVersion)
+				: ($latestGitTag ?: $changelogVersion);
 		}
 		/**
 		 * The Git tag is an older version to the changelog version.
@@ -139,7 +145,9 @@ class AutoVersionTask extends \Phing\Task
 		 */
 		else
 		{
-			$version = $this->bumpVersion($changelogVersion, true);
+			$version = $this->autoBump
+				? $this->bumpVersion($changelogVersion, true)
+				: $changelogVersion;
 		}
 
 		$this->project->setProperty($this->getPropertyName(), $version);
@@ -159,6 +167,16 @@ class AutoVersionTask extends \Phing\Task
 	public function setUseCommitHash($useCommitHash): void
 	{
 		$this->useCommitHash = $useCommitHash;
+	}
+
+	public function getAutoBump(): bool
+	{
+		return $this->autoBump;
+	}
+
+	public function setAutoBump(bool $autoBump): void
+	{
+		$this->autoBump = $autoBump;
 	}
 
 	private function bumpVersion(string $version, bool $onlyAddDev = false): string
