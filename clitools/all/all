@@ -52,14 +52,24 @@ fi
 echo -e $COLOR_WHITE"All – Loop all Git repositories"$COLOR_NC
 echo ""
 
-for d in */; do
-  pushd $d >/dev/null
-
-  if [ ! -d ".git" ]; then
-    popd >/dev/null
-
+for d in *; do
+  # Skip over files
+  if [[ ! -d "$d" ]]; then
     continue
   fi
+
+  # Skip over symlinks
+  if [[ -L "$d" ]]; then
+    continue
+  fi
+
+  # Make sure it's a Git repo
+  if [ ! -d "$d/.git" ]; then
+    continue
+  fi
+
+  # Go into the directory
+  pushd $d >/dev/null
 
   THISREPO_LINES=$(git remote -v | grep git@github.com | wc -l | awk '{print $1}')
 
@@ -88,10 +98,17 @@ for d in */; do
     ;;
 
   cloneme)
-    ZZZ_CUR_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    #ZZZ_CUR_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    ZZZ_CUR_BRANCH=$(git branch --show-current --abbrev)
     ZZZ_REMOTE=$(git config --get remote.origin.url)
+    ZZZ_TAG=$(git describe --exact-match --tags 2>/dev/null)
 
-    echo git clone -b $ZZZ_CUR_BRANCH "$ZZZ_REMOTE" $d
+    echo git clone --single-branch -b $ZZZ_CUR_BRANCH "$ZZZ_REMOTE" $d
+
+    if [[ ! -z "$ZZZ_TAG" ]]
+    then
+      echo git -C $d switch -c $ZZZ_CUR_BRANCH
+    fi
     ;;
 
   branch)
