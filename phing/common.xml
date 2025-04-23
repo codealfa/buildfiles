@@ -215,7 +215,7 @@
 					<arg value="0" />
 
 					<arg value="--stringparam" />
-					<arg value="variablelist.term.break.after 1" />
+					<arg value="variablelist.term.break.after" />
 					<arg value="1" />
 
 					<arg value="--stringparam" />
@@ -227,12 +227,32 @@
 					<arg value="12" />
 
 					<arg value="--stringparam" />
+					<arg value="admon.graphics" />
+					<arg value="0" />
+
+					<arg value="--stringparam" />
+					<arg value="use.id.as.filename" />
+					<arg value="1" />
+
+					<arg value="--stringparam" />
+					<arg value="chunk.section.depth" />
+					<arg value="3" />
+
+					<arg value="--stringparam" />
 					<arg value="section.autolabel" />
 					<arg value="1" />
 
 					<arg value="--stringparam" />
 					<arg value="toc.section.depth" />
 					<arg value="5" />
+
+					<arg value="--stringparam" />
+					<arg value="highlight.source" />
+					<arg value="1" />
+
+					<arg value="--stringparam" />
+					<arg value="paper.type" />
+					<arg value="A4" />
 
 					<arg value="--output" />
 					<arg file="${docs.epubdir}/${docs.output}.epub" />
@@ -257,7 +277,92 @@
         <delete dir="${docs.epubdir}" quiet="true" />
     </target>
 
-    <!--
+	<target name="docbook-zip" description="Render documentation in a ZIP file format">
+		<!-- Output file -->
+		<basename property="docs.output" file="${docs.input}-import.zip" suffix=".xml" />
+		<!-- Images parent folder (images are stored in its /images subdirectory) -->
+		<dirname property="docs.images" file="${dirs.documentation}/${docs.input}" />
+		<!-- The working directory (temporary) -->
+		<property name="docs.workdir" value="${dirs.release}/tmp" />
+
+		<!-- Rebuild the working directory -->
+		<delete dir="${docs.workdir}" quiet="true" />
+		<mkdir dir="${docs.workdir}" />
+		<mkdir dir="${docs.workdir}/images" />
+
+		<!-- Copy image files -->
+		<copy todir="${docs.workdir}/images" haltonerror="false">
+			<fileset dir="${docs.images}/images">
+				<include name="*.png" />
+				<include name="*.jpg" />
+				<include name="*.jpeg" />
+				<include name="*.gif" />
+			</fileset>
+		</copy>
+
+		<exec executable="${docs.xsltproc}" dir="${dirs.documentation}" checkreturn="true">
+			<arg value="--nonet" />
+			<arg value="--xinclude" />
+			<arg value="--novalid" />
+
+			<arg value="--stringparam" />
+			<arg value="body.start.indent" />
+			<arg value="0" />
+
+			<arg value="--stringparam" />
+			<arg value="variablelist.term.break.after" />
+			<arg value="1" />
+
+			<arg value="--stringparam" />
+			<arg value="variablelist.term.separator" />
+			<arg value="&quot;&quot;" />
+
+			<arg value="--stringparam" />
+			<arg value="variablelist.max.termlength" />
+			<arg value="12" />
+
+			<arg value="--stringparam" />
+			<arg value="admon.graphics" />
+			<arg value="0" />
+
+			<arg value="--stringparam" />
+			<arg value="use.id.as.filename" />
+			<arg value="1" />
+
+			<arg value="--stringparam" />
+			<arg value="chunk.section.depth" />
+			<arg value="3" />
+
+			<arg value="--stringparam" />
+			<arg value="section.autolabel" />
+			<arg value="1" />
+
+			<arg value="--stringparam" />
+			<arg value="toc.section.depth" />
+			<arg value="5" />
+
+			<arg value="--stringparam" />
+			<arg value="highlight.source" />
+			<arg value="1" />
+
+			<arg value="--output" />
+			<arg value="${docs.workdir}/" />
+
+			<arg file="${dirs.bin.dbxsl}/html/chunk.xsl" />
+
+			<arg file="${dirs.documentation}/${docs.input}" />
+		</exec>
+
+		<zip destfile="${dirs.release}/${docs.output}" basedir="${docs.workdir}">
+			<fileset dir="${docs.workdir}">
+				<include name="**" />
+			</fileset>
+		</zip>
+
+		<delete dir="${docs.workdir}" quiet="true" />
+	</target>
+
+	<!--
     Copy DocBook XML documentation to the remote server, for use by Akeeba DocImport³
 
     scp.dir.docs            Absolute SFTP path where documentation files are stored
