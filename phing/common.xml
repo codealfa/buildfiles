@@ -279,7 +279,7 @@
 
 	<target name="docbook-zip" description="Render documentation in a ZIP file format">
 		<!-- Output file -->
-		<basename property="docs.output" file="${docs.input}-import.zip" suffix=".xml" />
+		<basename property="docs.output" file="${docs.input}" suffix=".xml" />
 		<!-- Images parent folder (images are stored in its /images subdirectory) -->
 		<dirname property="docs.images" file="${dirs.documentation}/${docs.input}" />
 		<!-- The working directory (temporary) -->
@@ -353,7 +353,7 @@
 			<arg file="${dirs.documentation}/${docs.input}" />
 		</exec>
 
-		<zip destfile="${dirs.release}/${docs.output}" basedir="${docs.workdir}">
+		<zip destfile="${dirs.release}/${docs.output}-import.zip" basedir="${docs.workdir}">
 			<fileset dir="${docs.workdir}">
 				<include name="**" />
 			</fileset>
