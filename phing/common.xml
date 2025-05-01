@@ -28,6 +28,7 @@
     <property name="dirs.component" value="${dirs.root}/component" />
     <property name="dirs.modules" value="${dirs.root}/modules" />
     <property name="dirs.plugins" value="${dirs.root}/plugins" />
+    <property name="dirs.files" value="${dirs.root}/files" />
 
     <!-- ### DocBook XML Stylesheet Paths -->
     <property name="dirs.bin.dbxsl" value="${phing.dir.common}/bin/dbxsl" />
@@ -1059,7 +1060,7 @@
 
 		<if>
 			<not>
-				<referenceexists ref="${plugin_refid}" />
+				<referenceexists ref="${module_refid}" />
 			</not>
 			<then>
 				<zipme basedir="${module_dir}" destfile="${module_package}" includeemptydirs="true">
@@ -1157,6 +1158,73 @@
 				<zipme basedir="${plugin_dir}" destfile="${plugin_package}" includeemptydirs="true">
 					<fileset dir="${plugin_dir}">
 						<patternset refid="${plugin_refid}" />
+					</fileset>
+				</zipme>
+			</else>
+		</if>
+	</target>
+
+	<!--
+	Internal builder task to process all file packages inside the files folder of your repository
+	-->
+	<target name="package-files">
+		<if>
+			<available file="${dirs.files}" type="dir" />
+			<then>
+				<foreach param="dirname" absparam="absname" target="package-file-item" inheritall="true" inheritrefs="true">
+					<fileset dir="${dirs.files}">
+						<type type="dir"/>
+						<depth max="0" min="0" />
+					</fileset>
+				</foreach>
+			</then>
+		</if>
+	</target>
+
+	<!--
+	Internal builder task to build a file package
+	-->
+	<target name="package-file-item">
+		<echo message="Packaging file package ${dirname}" />
+
+		<if>
+			<not>
+				<equals arg1="${build.has_pro}" arg2="1" />
+			</not>
+			<then>
+				<property name="file_refid" value="file_${dirname}" />
+			</then>
+			<else>
+				<!-- Distinct Pro / Core versions, use a suffix -->
+				<if>
+					<equals arg1="${build.is_pro}" arg2="1" />
+					<then>
+						<property name="file_refid" value="file_${dirname}_pro" />
+					</then>
+					<else>
+						<property name="file_refid" value="file_${dirname}_core" />
+					</else>
+				</if>
+			</else>
+		</if>
+
+		<property name="file_package" value="${dirs.release}/file_${dirname}.zip" />
+
+		<if>
+			<not>
+				<referenceexists ref="${file_refid}" />
+			</not>
+			<then>
+				<zipme basedir="${absname}" destfile="${file_package}" includeemptydirs="true">
+					<fileset dir="${absname}">
+						<include name="**" />
+					</fileset>
+				</zipme>
+			</then>
+			<else>
+				<zipme basedir="${module_dir}" destfile="${file_package}" includeemptydirs="true">
+					<fileset dir="${absname}">
+						<patternset refid="${file_refid}" />
 					</fileset>
 				</zipme>
 			</else>

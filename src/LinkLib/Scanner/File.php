@@ -48,7 +48,7 @@ class File extends AbstractScanner
 			$repositoryRoot . '/joomla',
 		];
 
-		$rootPath   = $repositoryRoot . '/file';
+		$rootPath   = $repositoryRoot . '/files';
 		$extensions = [];
 
 		if (is_dir($rootPath))
@@ -153,20 +153,44 @@ class File extends AbstractScanner
 				continue;
 			}
 
-			$target = $filesNode->getAttribute('target');
+			$folder = '';
 
-			/** @var \DOMNode $fileNode */
-			foreach ($filesNode->getElementsByTagName('file') as $fileNode)
+			if ($filesNode->hasAttribute('folder'))
 			{
-				$result->fileSets[$target]   = $result->fileSets[$target] ?? [];
-				$result->fileSets[$target][] = $fileNode->textContent;
+				$folder = (string) $filesNode->getAttribute('folder');
 			}
 
-			/** @var \DOMNode $fileNode */
-			foreach ($filesNode->getElementsByTagName('folder') as $fileNode)
+			$target = $filesNode->getAttribute('target');
+			$result->fileSets[$target]   = $result->fileSets[$target] ?? [];
+			$result->folderSets[$target]   = $result->folderSets[$target] ?? [];
+
+			if ($folder)
 			{
-				$result->folderSets[$target]   = $result->folderSets[$target] ?? [];
-				$result->folderSets[$target][] = $fileNode->textContent;
+				$result->folderSets[$target][] = $folder;
+			}
+			else
+			{
+				/** @var \DOMNode $fileNode */
+				foreach ($filesNode->getElementsByTagName('file') as $fileNode)
+				{
+					$result->fileSets[$target][] = $fileNode->textContent;
+				}
+
+				/** @var \DOMNode $fileNode */
+				foreach ($filesNode->getElementsByTagName('folder') as $fileNode)
+				{
+					$result->folderSets[$target][] = $fileNode->textContent;
+				}
+			}
+
+			if (empty($result->fileSets[$target]))
+			{
+				unset($result->fileSets[$target]);
+			}
+
+			if (empty($result->folderSets[$target]))
+			{
+				unset($result->folderSets[$target]);
 			}
 		}
 
@@ -208,8 +232,7 @@ class File extends AbstractScanner
 
 			foreach ($sourceFolders as $sourceFolder)
 			{
-				$basename                                 = basename($sourceFolder);
-				$folders[$absoluteTarget . '/' . $basename] = $this->extensionRoot . '/' . $sourceFolder;
+				$folders[$this->extensionRoot . '/' . $sourceFolder] = $absoluteTarget;
 			}
 		}
 
