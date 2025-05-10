@@ -504,6 +504,12 @@
                     <token key="API.PASSWORD" value="${release.api.password}" />
                     <token key="API.TOKEN" value="${release.api.token}" />
 
+                    <token key="BUNNY.ACCESS" value="${bunny.access}" />
+                    <token key="BUNNY.ZONE" value="${bunny.zone}" />
+                    <token key="BUNNY.REGION" value="${bunny.region}" />
+                    <token key="BUNNY.CDNHOSTNAME" value="${bunny.cdnhostname}" />
+                    <token key="BUNNY.DIRECTORY" value="${bunny.directory}" />
+
                     <token key="S3.ACCESS" value="${s3.access}" />
                     <token key="S3.SECRET" value="${s3.private}" />
                     <token key="S3.BUCKET" value="${s3.bucket}" />
@@ -594,6 +600,12 @@
 					<token key="API.PASSWORD" value="${release.api.password}" />
 					<token key="API.TOKEN" value="${release.api.token}" />
 					<token key="API.CONNECTOR" value="${release.api.connector}" />
+
+					<token key="BUNNY.ACCESS" value="${bunny.access}" />
+					<token key="BUNNY.ZONE" value="${bunny.zone}" />
+					<token key="BUNNY.REGION" value="${bunny.region}" />
+					<token key="BUNNY.CDNHOSTNAME" value="${bunny.cdnhostname}" />
+					<token key="BUNNY.DIRECTORY" value="${bunny.directory}" />
 
 					<token key="S3.ACCESS" value="${s3.access}" />
 					<token key="S3.SECRET" value="${s3.private}" />
