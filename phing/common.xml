@@ -105,6 +105,42 @@
 				<autoversion workingCopy="${dirs.root}" propertyName="version" />
             </then>
         </if>
+
+		<if>
+			<not>
+				<isset property="min_joomla" />
+			</not>
+			<then>
+				<property name="min_joomla" value="0.0.0" />
+			</then>
+		</if>
+
+		<if>
+			<not>
+				<isset property="max_joomla" />
+			</not>
+			<then>
+				<property name="max_joomla" value="999.999.999" />
+			</then>
+		</if>
+
+		<if>
+			<not>
+				<isset property="min_wordpress" />
+			</not>
+			<then>
+				<property name="min_wordpress" value="0.0.0" />
+			</then>
+		</if>
+
+		<if>
+			<not>
+				<isset property="max_wordpress" />
+			</not>
+			<then>
+				<property name="max_wordpress" value="999.999.999" />
+			</then>
+		</if>
     </target>
 
     <!--
@@ -982,6 +1018,10 @@
 							<token key="DATE" value="${build.date}" />
 							<token key="VERSION" value="${version}" />
 							<token key="PRO" value="${build.is_pro}" />
+							<token key="MINJOOMLA" value="${build.min_joomla}" />
+							<token key="MAXJOOMLA" value="${build.max_joomla}" />
+							<token key="MINWP" value="${build.min_wordpress}" />
+							<token key="MAXWP" value="${build.max_wordpress}" />
 						</replacetokens>
 					</filterchain>
 				</copy>
@@ -998,6 +1038,10 @@
 							<token key="DATE" value="${build.date}" />
 							<token key="VERSION" value="${version}" />
 							<token key="PRO" value="${build.is_pro}" />
+							<token key="MINJOOMLA" value="${build.min_joomla}" />
+							<token key="MAXJOOMLA" value="${build.max_joomla}" />
+							<token key="MINWP" value="${build.min_wordpress}" />
+							<token key="MAXWP" value="${build.max_wordpress}" />
 						</replacetokens>
 					</filterchain>
 				</copy>
@@ -1338,6 +1382,10 @@
 				<replacetokens begintoken="##" endtoken="##">
 					<token key="DATE" value="${build.date}" />
 					<token key="VERSION" value="${version}" />
+					<token key="MINJOOMLA" value="${build.min_joomla}" />
+					<token key="MAXJOOMLA" value="${build.max_joomla}" />
+					<token key="MINWP" value="${build.min_wordpress}" />
+					<token key="MAXWP" value="${build.max_wordpress}" />
 				</replacetokens>
 			</filterchain>
 		</copy>
