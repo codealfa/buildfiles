@@ -16,6 +16,7 @@ usage() {
   echo "branch  Which branch am I in?"
   echo "cloneme Generate git clone commands"
   echo "version Latest version versus latest tag information"
+  echo "git     Latest Git tag and its date"
   echo -e $COLOR_BLUE"Using Akeeba Build Files"$COLOR_NC
   echo "build   Run the Phing 'git' task to rebuild the software"
   echo "link    Internal relink"
@@ -207,6 +208,11 @@ for d in *; do
       echo -en "${COLOR_LIGHT_GREEN}Released   $COLOR_CYAN$d$COLOR_NC "
       echo -e "$COLOR_BROWN$LATEST_TAG$COLOR_NC"
     fi
+    ;;
+
+  tag)
+    LATEST_TAG=$(git for-each-ref --sort=-taggerdate refs/tags/ --format '%(refname:short) -- %(taggerdate:relative)' | head -n 1)
+    echo -e "$COLOR_CYAN$d$COLOR_NC $LATEST_TAG"
     ;;
 
   *)
