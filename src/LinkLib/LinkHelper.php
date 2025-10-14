@@ -74,7 +74,7 @@ abstract class LinkHelper
 	 * @throw   \RuntimeException  If the link ($to) cannot be created / replaced
 	 * @throws  \Exception         Same as above; phpStorm simply doesn't understand it's the same case.
 	 */
-	public static function makeLink(string $from, string $to, string $type = 'symlink', string $path = null)
+	public static function makeLink(string $from, string $to, string $type = 'symlink', ?string $path = null)
 	{
 		$isWindows = self::isWindows();
 		$realTo    = $to;
