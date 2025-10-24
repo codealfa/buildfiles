@@ -242,7 +242,9 @@ class PhpStormSourceHandling
 
 				foreach ($xmlFiles as $file)
 				{
-					if (!($xml = simplexml_load_file($file)))
+					$xml = @simplexml_load_file($file);
+
+					if ($xml === false)
 					{
 						continue;
 					}
