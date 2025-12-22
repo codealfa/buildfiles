@@ -46,11 +46,41 @@ class CurlSftpTask extends ScpTask
 	}
 
 	/**
+	 * Uploads a local file to the remote storage
+	 *
+	 * @param   string  $localFilename   The full path to the local file
+	 * @param   string  $remoteFilename  The full path to the remote file
+	 *
+	 * @return  boolean  True on success
+	 */
+	public function upload($localFilename, $remoteFilename)
+	{
+		$fp = @fopen($localFilename, 'rb');
+
+		if ($fp === false)
+		{
+			throw new RuntimeException("Unreadable local file $localFilename");
+		}
+
+		// Note: don't manually close the file pointer, it's closed automatically by uploadFromHandle
+		try
+		{
+			$this->uploadFromHandle($remoteFilename, $fp);
+		}
+		catch (RuntimeException $e)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * @param   Project  $p
 	 */
 	protected function usingCURL($p)
 	{
-		$methods          = !empty($this->methods) ? $this->methods->toArray($p) : array();
+		$methods = !empty($this->methods) ? $this->methods->toArray($p) : [];
 
 		try
 		{
@@ -99,7 +129,7 @@ class CurlSftpTask extends ScpTask
 	 */
 	protected function usingSSH2($p)
 	{
-		$methods          = !empty($this->methods) ? $this->methods->toArray($p) : array();
+		$methods          = !empty($this->methods) ? $this->methods->toArray($p) : [];
 		$this->connection = ssh2_connect($this->host, $this->port, $methods);
 		if (!$this->connection)
 		{
@@ -259,9 +289,10 @@ class CurlSftpTask extends ScpTask
 	/**
 	 * Returns a cURL resource handler for the remote SFTP server
 	 *
-	 * @param   string $remoteFile Optional. The remote file / folder on the SFTP server you'll be manipulating with cURL.
+	 * @param   string  $remoteFile  Optional. The remote file / folder on the SFTP server you'll be manipulating with
+	 *                               cURL.
 	 *
-	 * @return  resource
+	 * @return  resource|\CurlHandle
 	 */
 	protected function getCurlHandle($remoteFile = '')
 	{
@@ -272,7 +303,7 @@ class CurlSftpTask extends ScpTask
 		if (empty($this->pubkeyfile) && !empty($this->password))
 		{
 			// Remember, both the username and password have to be URL encoded as they're part of a URI!
-			$password = urlencode($this->password);
+			$password       = urlencode($this->password);
 			$authentication .= ':' . $password;
 		}
 
@@ -302,7 +333,7 @@ class CurlSftpTask extends ScpTask
 				$dirname = '';
 			}
 
-			$dirname = trim($dirname, '/');
+			$dirname  = trim($dirname, '/');
 			$basename = basename($remoteFile);
 
 			if ((substr($remoteFile, -1) == '/') && !empty($basename))
@@ -358,15 +389,15 @@ class CurlSftpTask extends ScpTask
 		// Should I enable verbose output? Useful for debugging.
 		// curl_setopt($ch, CURLOPT_VERBOSE, 1);
 
-		curl_setopt($ch, CURLOPT_FTP_CREATE_MISSING_DIRS , 1);
+		curl_setopt($ch, CURLOPT_FTP_CREATE_MISSING_DIRS, 1);
 
 		return $ch;
 	}
 
 	/**
-	 * Test the connection to the SFTP server and whether the initial directory is correct. This is done by attempting to
-	 * list the contents of the initial directory. The listing is not parsed (we don't really care!) and we do NOT check
-	 * if we can upload files to that remote folder.
+	 * Test the connection to the SFTP server and whether the initial directory is correct. This is done by attempting
+	 * to list the contents of the initial directory. The listing is not parsed (we don't really care!) and we do NOT
+	 * check if we can upload files to that remote folder.
 	 *
 	 * @throws  RuntimeException
 	 */
@@ -380,7 +411,11 @@ class CurlSftpTask extends ScpTask
 		$listing = curl_exec($ch);
 		$errNo   = curl_errno($ch);
 		$error   = curl_error($ch);
-		curl_close($ch);
+
+		if (version_compare(PHP_VERSION, '8.5.0', 'lt'))
+		{
+			curl_close($ch);
+		}
 
 		if ($errNo)
 		{
@@ -389,40 +424,10 @@ class CurlSftpTask extends ScpTask
 	}
 
 	/**
-	 * Uploads a local file to the remote storage
-	 *
-	 * @param   string  $localFilename   The full path to the local file
-	 * @param   string  $remoteFilename  The full path to the remote file
-	 *
-	 * @return  boolean  True on success
-	 */
-	public function upload($localFilename, $remoteFilename)
-	{
-		$fp = @fopen($localFilename, 'rb');
-
-		if ($fp === false)
-		{
-			throw new RuntimeException("Unreadable local file $localFilename");
-		}
-
-		// Note: don't manually close the file pointer, it's closed automatically by uploadFromHandle
-		try
-		{
-			$this->uploadFromHandle($remoteFilename, $fp);
-		}
-		catch (RuntimeException $e)
-		{
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
 	 * Uploads a file using file contents provided through a file handle
 	 *
-	 * @param   string   $remoteFilename
-	 * @param   resource $fp
+	 * @param   string    $remoteFilename
+	 * @param   resource  $fp
 	 *
 	 * @return  void
 	 *
@@ -445,7 +450,11 @@ class CurlSftpTask extends ScpTask
 		$error_no = curl_errno($ch);
 		$error    = curl_error($ch);
 
-		curl_close($ch);
+		if (version_compare(PHP_VERSION, '8.5.0', 'lt'))
+		{
+			curl_close($ch);
+		}
+
 		fclose($fp);
 
 		if ($error_no)
