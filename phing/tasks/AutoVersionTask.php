@@ -1,7 +1,7 @@
 <?php
 /**
  * @package   buildfiles
- * @copyright Copyright (c)2010-2025 Nicholas K. Dionysopoulos / Akeeba Ltd
+ * @copyright Copyright (c)2010-2026 Nicholas K. Dionysopoulos / Akeeba Ltd
  * @license   GNU General Public License version 3, or later
  */
 
@@ -12,7 +12,7 @@ namespace tasks;
  *
  * @version   $Id$
  * @package   akeebabuilder
- * @copyright Copyright (c)2010-2025 Nicholas K. Dionysopoulos / Akeeba Ltd
+ * @copyright Copyright (c)2010-2026 Nicholas K. Dionysopoulos / Akeeba Ltd
  * @license   GNU GPL version 3 or, at your option, any later version
  * @author    nicholas
  */

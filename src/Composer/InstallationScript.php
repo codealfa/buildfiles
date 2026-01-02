@@ -1,7 +1,7 @@
 <?php
 /*
  * @package   buildfiles
- * @copyright (c)2010-2025 Nicholas K. Dionysopoulos / Akeeba Ltd
+ * @Copyright (c)2010-2026 Nicholas K. Dionysopoulos / Akeeba Ltd
  * @license   GNU General Public License version 3, or later
  */
 
