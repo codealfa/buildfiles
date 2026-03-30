@@ -96,3 +96,45 @@ The `--html` flag produces a standalone HTML 5 document with:
 - Card-based entries with colour-coded sections
 - Collapsible changelog excerpts (using `<details>` / `<summary>`)
 - Clickable links to GitHub issues
+
+## Scheduled email reports
+
+The `email_report.sh` wrapper script runs `pending_work.sh --html` and sends the output as an HTML email using [msmtp](https://marlam.de/msmtp/).
+
+### Requirements
+
+- **msmtp** — a lightweight SMTP client. Install with your package manager (e.g. `pacman -S msmtp` on Arch Linux, `apt install msmtp` on Debian/Ubuntu).
+- A configured `~/.msmtprc` file with your SMTP credentials (see below).
+
+### msmtp configuration
+
+Create `~/.msmtprc` with permissions `600`:
+
+```
+defaults
+auth           on
+tls            on
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+logfile        ~/.msmtp.log
+
+account        mailbox
+host           smtp.example.com
+port           587
+from           you@example.com
+user           you@example.com
+password       YOUR_PASSWORD_HERE
+
+account default : mailbox
+```
+
+> **Note:** Because `~/.msmtprc` contains credentials, it is best managed with a dotfile management tool such as [chezmoi](https://www.chezmoi.io/) so that secrets are encrypted at rest and the file is deployed with correct permissions across machines.
+
+### Cron setup
+
+Add a cron entry to receive the report every weekday at 8 AM local time:
+
+```
+0 8 * * 1-5  /path/to/pending_work/email_report.sh
+```
+
+The script resolves its own directory to locate `pending_work.sh`, so it works regardless of the working directory cron uses.
