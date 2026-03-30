@@ -41,7 +41,7 @@ done
 
 PROJECTS_DIR="$HOME/Projects"
 ALLOWED_ORGS="akeeba|j4-akeeba|dionysopoulos"
-EXCLUDED_REPOS="tpl_andromeda|angie|angie2|usagestats|fef|fef-1.x|hexbound|tpl_cassiopeia_twentytwo|devskills"
+EXCLUDED_REPOS="tpl_andromeda|tpl_akeebabs4|angie|angie2|usagestats|fef|fef-1.x|hexbound|tpl_cassiopeia_twentytwo|devskills|boot_cli"
 OUTDATED_DAYS=21
 
 # ANSI colors
