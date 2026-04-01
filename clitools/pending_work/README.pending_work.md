@@ -129,6 +129,15 @@ account default : mailbox
 
 > **Note:** Because `~/.msmtprc` contains credentials, it is best managed with a dotfile management tool such as [chezmoi](https://www.chezmoi.io/) so that secrets are encrypted at rest and the file is deployed with correct permissions across machines.
 
+### Scheduled execution
+
+There are two options to schedule the email report:
+
+- **Cron**: Schedule the report to run at a specific time using cron. The machine MUST be turned on for the report to be sent. If the machine is off at the trigger time, no report will be sent over email.
+- **Systemd timer**: Use systemd timers for more flexibility and control. You can make it so that if the machine is turned off at the trigger time the report will be sent the next time the machine is turned on and before the next trigger time (effectively allowing it to catch up).
+
+If you are setting this up on a homelab / office server which is running continuously, the CRON setup is probably the best option, mostly thanks to its simplicity. If you are setting this up on a laptop or desktop which is turned off / sleeping / hibernating at night, the systemd timer setup is arguably the best option.
+
 ### Cron setup
 
 Add a cron entry to receive the report every weekday at 8 AM local time:
@@ -138,3 +147,47 @@ Add a cron entry to receive the report every weekday at 8 AM local time:
 ```
 
 The script resolves its own directory to locate `pending_work.sh`, so it works regardless of the working directory cron uses.
+
+### Systemd timer setup
+
+There are two components to this setup. The unit file tells systemd what to execute, and how to execute. The timer file tells systemd when to execute the unit file.
+
+Create the user directory for systemd units:
+
+```bash
+mkdir -p ~/.config/systemd/user
+```
+
+Create the unit file `~/.config/systemd/user/email_report.service` with the following content:
+
+```unit file (systemd)
+[Unit]
+Description=Pending Work Email Report
+
+[Service]
+Type=oneshot
+ExecStart=/path/to/pending_work/email_report.sh
+```
+
+Create the timer file `~/.config/systemd/user/email_report.timer` with the following content:
+
+```unit file (systemd)
+[Unit]
+Description=Pending Work Email Report — weekdays at 8am
+
+[Timer]
+OnCalendar=Mon-Fri 08:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+> [!IMPORTANT] The `Persistent=true` option ensures that the timer will be activated even if the system was off at the scheduled time. This allows the report to be sent as soon as the system is turned on and before the next scheduled time, effectively catching up on missed reports.
+
+Tell systemd to reload the user's units and enable the timer:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now email_report.timer
+```
