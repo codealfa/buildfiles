@@ -20,6 +20,7 @@ function showUsage()
 	Write-Host "cloneme  Generate git clone commands"
 	Write-Host "version  Latest version versus latest tag information"
 	Write-Host "tag      Latest Git tag and its date"
+	Write-Host "install  Hard-link this tool into all first-level subdirectories"
 	Write-Host "fixcrlf  Fix CRLF under Windows"
 	Write-Host "Using Akeeba Build Files" -Foreground Blue
 	Write-Host "build    Run the Phing 'git' task to rebuild the software"
@@ -32,6 +33,43 @@ if (!$operation)
 {
 	showUsage
 	exit 255
+}
+
+if ($operation -eq "install")
+{
+	$scriptPath = Join-Path $PSScriptRoot "all.ps1"
+	Write-Host "All - Installing hard links into first-level subdirectories" -Foreground White
+	Write-Host ""
+
+	Get-ChildItem -Directory | ForEach-Object {
+		if ($_.Attributes -band [System.IO.FileAttributes]::ReparsePoint)
+		{
+			return
+		}
+
+		$d = $_.Name
+		$linkPath = Join-Path $d "all.ps1"
+
+		Write-Host $d -Foreground Cyan -NoNewline
+		Write-Host " " -NoNewline
+
+		if (Test-Path $linkPath)
+		{
+			Remove-Item $linkPath -Force
+		}
+
+		try
+		{
+			New-Item -ItemType HardLink -Path $linkPath -Target $scriptPath -ErrorAction Stop | Out-Null
+			Write-Host "linked" -Foreground Green
+		}
+		catch
+		{
+			Write-Host "failed: $_" -Foreground Red
+		}
+	}
+
+	exit 0
 }
 
 Write-Host "All - Loop all repositories" -Foreground White

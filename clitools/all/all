@@ -17,6 +17,7 @@ usage() {
   echo "cloneme Generate git clone commands"
   echo "version Latest version versus latest tag information"
   echo "tag     Latest Git tag and its date"
+  echo "install Hard-link this tool into all first-level subdirectories"
   echo -e $COLOR_BLUE"Using Akeeba Build Files"$COLOR_NC
   echo "build   Run the Phing 'git' task to rebuild the software"
   echo "link    Internal relink"
@@ -48,6 +49,32 @@ if [ $# -lt 1 ]; then
   usage
 
   exit 255
+fi
+
+if [[ "$1" == "install" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  SCRIPT_PATH="$SCRIPT_DIR/all"
+  echo -e $COLOR_WHITE"All – Installing hard links into first-level subdirectories"$COLOR_NC
+  echo ""
+
+  for d in *; do
+    [[ ! -d "$d" ]] && continue
+    [[ -L "$d" ]] && continue
+
+    echo -en "$COLOR_CYAN$d$COLOR_NC "
+
+    if [[ -e "$d/all" ]]; then
+      rm -f "$d/all"
+    fi
+
+    if ln "$SCRIPT_PATH" "$d/all"; then
+      echo -e "${COLOR_LIGHT_GREEN}linked${COLOR_NC}"
+    else
+      echo -e "${COLOR_LIGHT_RED}failed${COLOR_NC}"
+    fi
+  done
+
+  exit 0
 fi
 
 echo -e $COLOR_WHITE"All – Loop all Git repositories"$COLOR_NC
