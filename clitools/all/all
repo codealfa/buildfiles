@@ -52,6 +52,11 @@ if [ $# -lt 1 ]; then
 fi
 
 if [[ "$1" == "install" ]]; then
+  if [[ "$PWD" != "$HOME/Projects" ]] && [[ ! -d "akeeba" ]]; then
+    echo -e "${COLOR_LIGHT_RED}The install command must be run from ~/Projects or from a directory that contains an 'akeeba' subdirectory.${COLOR_NC}"
+    exit 1
+  fi
+
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   SCRIPT_PATH="$SCRIPT_DIR/all"
   echo -e $COLOR_WHITE"All – Installing hard links into first-level subdirectories"$COLOR_NC

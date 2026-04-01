@@ -37,6 +37,13 @@ if (!$operation)
 
 if ($operation -eq "install")
 {
+	$projectsPath = Join-Path $HOME "Projects"
+	if ($PWD.Path -ne $projectsPath -and -not (Test-Path "akeeba" -PathType Container))
+	{
+		Write-Host "The install command must be run from ~/Projects or from a directory that contains an 'akeeba' subdirectory." -Foreground Red
+		exit 1
+	}
+
 	$scriptPath = Join-Path $PSScriptRoot "all.ps1"
 	Write-Host "All - Installing hard links into first-level subdirectories" -Foreground White
 	Write-Host ""
