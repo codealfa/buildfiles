@@ -55,6 +55,25 @@ if ($operation -eq "install")
 		}
 
 		$d = $_.Name
+
+		if (Test-Path (Join-Path $d ".git") -PathType Container)
+		{
+			Write-Host $d -Foreground Cyan -NoNewline
+			Write-Host " not linked - not a tree of Git working copies" -Foreground Red
+			return
+		}
+
+		$hasGitSubdir = Get-ChildItem -Path $d -Directory -ErrorAction SilentlyContinue |
+			Where-Object { Test-Path (Join-Path $_.FullName ".git") -PathType Container } |
+			Select-Object -First 1
+
+		if (-not $hasGitSubdir)
+		{
+			Write-Host $d -Foreground Cyan -NoNewline
+			Write-Host " not linked - not a tree of Git working copies" -Foreground Red
+			return
+		}
+
 		$linkPath = Join-Path $d "all.ps1"
 
 		Write-Host $d -Foreground Cyan -NoNewline

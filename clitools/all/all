@@ -66,6 +66,24 @@ if [[ "$1" == "install" ]]; then
     [[ ! -d "$d" ]] && continue
     [[ -L "$d" ]] && continue
 
+    if [[ -d "$d/.git" ]]; then
+      echo -e "$COLOR_CYAN$d$COLOR_NC ${COLOR_LIGHT_RED}not linked - not a tree of Git working copies${COLOR_NC}"
+      continue
+    fi
+
+    HAS_GIT_SUBDIR=0
+    for sub in "$d"/*/; do
+      [[ -d "$sub" ]] || continue
+      if [[ -d "${sub}.git" ]]; then
+        HAS_GIT_SUBDIR=1
+        break
+      fi
+    done
+    if [[ $HAS_GIT_SUBDIR -eq 0 ]]; then
+      echo -e "$COLOR_CYAN$d$COLOR_NC ${COLOR_LIGHT_RED}not linked - not a tree of Git working copies${COLOR_NC}"
+      continue
+    fi
+
     echo -en "$COLOR_CYAN$d$COLOR_NC "
 
     if [[ -e "$d/all" ]]; then
