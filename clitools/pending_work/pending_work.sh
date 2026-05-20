@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ==============================================================================
 # pending_work.sh — Overview of pending work and releases across repositories
@@ -38,6 +38,22 @@ USAGE
             ;;
     esac
 done
+
+# Portable date helpers (GNU date vs BSD date on macOS)
+parse_date_epoch() {
+    local s="$1"
+    local r
+    r=$(date -d "$s" +%s 2>/dev/null) && { echo "$r"; return; }
+    r=$(date -j -f "%Y-%m-%d %H:%M:%S %z" "$s" +%s 2>/dev/null) && { echo "$r"; return; }
+    r=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$s" +%s 2>/dev/null) && { echo "$r"; return; }
+    echo 946684800
+}
+
+format_epoch() {
+    local epoch="$1" fmt="$2"
+    TZ="Europe/Athens" date -d "@$epoch" "$fmt" 2>/dev/null \
+        || TZ="Europe/Athens" date -r "$epoch" "$fmt"
+}
 
 PROJECTS_DIR="$HOME/Projects"
 ALLOWED_ORGS="akeeba|j4-akeeba|dionysopoulos"
@@ -118,7 +134,7 @@ get_changelog_file() {
 #   "## 1.2.3"
 get_changelog_version() {
     local file="$1"
-    grep -oP '(\d+\.\d+\.\d+)' "$file" | head -1
+    grep -oE '[0-9]+\.[0-9]+\.[0-9]+' "$file" | head -1
 }
 
 # Extract the changelog excerpt for the first (upcoming) version.
@@ -149,7 +165,7 @@ get_changelog_excerpt() {
 
         if [[ $in_section -eq 0 ]]; then
             # Look for the line containing our version
-            if echo "$line" | grep -qP "(^|\s)${version//./\\.}(\s|$)"; then
+            if echo "$line" | grep -qE "(^|[[:space:]])${version//./\\.}([[:space:]]|$)"; then
                 in_section=1
                 result="$line"
             fi
@@ -157,7 +173,7 @@ get_changelog_excerpt() {
             # Check if we've hit the next version header
             if [[ $is_md -eq 1 ]]; then
                 # Markdown: next version starts with # followed by text containing a version number
-                if echo "$line" | grep -qP '^#\s+.*\d+\.\d+\.\d+'; then
+                if echo "$line" | grep -qE '^#[[:space:]]+.*[0-9]+\.[0-9]+\.[0-9]+'; then
                     break
                 fi
             else
@@ -165,13 +181,13 @@ get_changelog_excerpt() {
                 # but we need to distinguish from changelog entries
                 # Version lines typically are like "SoftwareName X.Y.Z" or just "X.Y.Z"
                 # and are followed by a line of ====
-                if echo "$line" | grep -qP '^\S.*\d+\.\d+\.\d+\s*$' && [[ "$line" != *"#"* ]] && [[ "$line" != *"~"* ]] && [[ "$line" != *"+"* ]] && [[ "$line" != *"!"* ]]; then
+                if echo "$line" | grep -qE '^[^[:space:]].*[0-9]+\.[0-9]+\.[0-9]+[[:space:]]*$' && [[ "$line" != *"#"* ]] && [[ "$line" != *"~"* ]] && [[ "$line" != *"+"* ]] && [[ "$line" != *"!"* ]]; then
                     break
                 fi
             fi
 
             # Skip separator lines (=====)
-            if echo "$line" | grep -qP '^={3,}'; then
+            if echo "$line" | grep -qE '^={3,}'; then
                 continue
             fi
 
@@ -205,7 +221,7 @@ for dir in "${actionable_dirs[@]}"; do
         # Strip leading 'v' if present
         latest_tag_version="${latest_tag#v}"
         tag_date_str=$(git -C "$dir" log -1 --format='%ai' "$latest_tag" 2>/dev/null)
-        tag_epoch=$(date -d "$tag_date_str" +%s 2>/dev/null || echo 946684800)
+        tag_epoch=$(parse_date_epoch "$tag_date_str")
     fi
 
     latest_tags["$dir"]="${latest_tag:-none}"
@@ -275,7 +291,7 @@ mkdir -p "$CACHE_DIR"
 
 use_cache=0
 if [[ $FORCE_REFRESH -eq 0 && -f "$CACHE_FILE" ]]; then
-    cache_mtime=$(stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0)
+    cache_mtime=$(stat -c %Y "$CACHE_FILE" 2>/dev/null || stat -f %m "$CACHE_FILE" 2>/dev/null || echo 0)
     if (( now_epoch - cache_mtime < CACHE_MAX_AGE )); then
         use_cache=1
     fi
@@ -310,14 +326,14 @@ mapfile -t issue_dates < <(echo "$github_issues_json" | jq -r '.[].createdAt')
 
 format_tag_date() {
     local epoch="$1"
-    TZ="Europe/Athens" date -d "@$epoch" "+%d/%m/%Y %H:%M:%S"
+    format_epoch "$epoch" "+%d/%m/%Y %H:%M:%S"
 }
 
 format_iso_date() {
     local iso="$1"
     local epoch
-    epoch=$(date -d "$iso" +%s 2>/dev/null || echo 0)
-    TZ="Europe/Athens" date -d "@$epoch" "+%d/%m/%Y"
+    epoch=$(parse_date_epoch "$iso")
+    format_epoch "$epoch" "+%d/%m/%Y"
 }
 
 # ==============================================================================
@@ -334,9 +350,9 @@ rel_path() {
 #   empty otherwise
 pending_emoji() {
     local excerpt="$1"
-    if echo "$excerpt" | grep -qP '^! '; then
+    if echo "$excerpt" | grep -q '^! '; then
         echo "🚨"
-    elif echo "$excerpt" | grep -qP '^# \[HIGH\]'; then
+    elif echo "$excerpt" | grep -qE '^# \[HIGH\]'; then
         echo "‼️"
     else
         echo ""
@@ -345,9 +361,9 @@ pending_emoji() {
 
 pending_emoji_html() {
     local excerpt="$1"
-    if echo "$excerpt" | grep -qP '^! '; then
+    if echo "$excerpt" | grep -q '^! '; then
         echo "&#x1F6A8; "
-    elif echo "$excerpt" | grep -qP '^# \[HIGH\]'; then
+    elif echo "$excerpt" | grep -qE '^# \[HIGH\]'; then
         echo "&#x203C;&#xFE0F; "
     else
         echo ""
