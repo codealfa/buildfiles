@@ -64,5 +64,9 @@
       "\\Akeeba\\BuildFiles\\Composer\\InstallationScript::installDbXsl",
       "@composer dump-autoload -a"
     ]
+  },
+  "require-dev": {
+    "phpcompatibility/php-compatibility": "^9.3",
+    "squizlabs/php_codesniffer": "^3"
   }
 }
