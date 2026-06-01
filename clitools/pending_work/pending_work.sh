@@ -4,6 +4,19 @@
 # pending_work.sh — Overview of pending work and releases across repositories
 # ==============================================================================
 
+if (( BASH_VERSINFO[0] < 4 )); then
+    echo "Error: bash 4+ required (running bash ${BASH_VERSION})." >&2
+    if [[ "$(uname)" == "Darwin" ]] && command -v brew &>/dev/null; then
+        brew_bash="$(brew --prefix bash 2>/dev/null)/bin/bash"
+        if [[ -x "$brew_bash" ]]; then
+            echo "Run with: ${brew_bash} $0 $*" >&2
+        else
+            echo "Install bash via Homebrew first: brew install bash" >&2
+        fi
+    fi
+    exit 1
+fi
+
 set -euo pipefail
 
 # Parse flags
