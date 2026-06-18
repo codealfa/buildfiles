@@ -10,6 +10,7 @@
 import { execFileSync } from 'child_process';
 import { readdirSync } from 'fs';
 import { join, basename } from 'path';
+import { fileURLToPath } from 'url';
 
 const srcDir = process.argv[2];
 
@@ -17,6 +18,8 @@ if (!srcDir) {
 	console.error('Usage: node build-js.mjs <source-dir>');
 	process.exit(1);
 }
+
+const terser = fileURLToPath(new URL('./node_modules/.bin/terser', import.meta.url));
 
 const files = readdirSync(srcDir).filter(f => f.endsWith('.js') && !f.endsWith('.min.js'));
 
@@ -31,8 +34,8 @@ for (const file of files) {
 	const out  = join(srcDir, `${name}.min.js`);
 	const map  = `${out}.map`;
 
-	execFileSync('npx', [
-		'terser', src,
+	execFileSync(terser, [
+		src,
 		'--compress',
 		'--mangle',
 		'--comments', 'false',
