@@ -119,7 +119,7 @@ abstract class GitHubTask extends \Phing\Task
 		]);
 
 		// Then we need to create an HTTPlug client adapter to the Guzzle client
-		$guzzleAdapter = new Http\Adapter\Guzzle6\Client($guzzleClient);
+		$guzzleAdapter = new Http\Adapter\Guzzle7\Client($guzzleClient);
 		// In turn, we need to make an HTTPBuilder object to that adapter
 		$httpBuilder   = new Github\HttpClient\Builder($guzzleAdapter);
 		// Finally we have our client.
