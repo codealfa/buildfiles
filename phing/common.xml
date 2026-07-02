@@ -762,7 +762,7 @@
 
 		<!-- Publish the release -->
 		<GitHubRelease token="${github.token}" organization="${github.organization}" repository="${github.repository}"
-					   tagName="${version}" draft="0" />
+					   tagName="${version}" draft="0" releaseId="${github.release.id}" />
 	</target>
 
 	<target name="github-release-file">

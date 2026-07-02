@@ -85,6 +85,16 @@ class GitHubReleaseTask extends GitHubTask
 	protected $propName = 'github.release.id';
 
 	/**
+	 * The numeric ID of an already-known release to edit. When set, this skips the tag-based
+	 * release lookup and edits this release directly, avoiding a race where a release created
+	 * moments ago (e.g. by a preceding GitHubRelease call) is not yet found by tag, causing a
+	 * duplicate release to be created instead of editing the existing one.
+	 *
+	 * @var   int|null
+	 */
+	protected $releaseId;
+
+	/**
 	 * Called by the project to let the task do its work.
 	 *
 	 * @throws   BuildException  If an build error occurs.
@@ -116,7 +126,9 @@ class GitHubReleaseTask extends GitHubTask
 		}
 
 		// Does the release exist?
-		$release = $this->getReleaseByTag($apiParameters['tag_name']);
+		$release = !empty($this->releaseId)
+			? $this->getReleaseById($this->releaseId)
+			: $this->getReleaseByTag($apiParameters['tag_name']);
 
 		if (empty($release))
 		{
@@ -259,6 +271,18 @@ class GitHubReleaseTask extends GitHubTask
 	}
 
 	/**
+	 * Set the numeric ID of an already-known release to edit directly, bypassing tag-based lookup.
+	 *
+	 * @param   int  $releaseId
+	 *
+	 * @return  void
+	 */
+	public function setReleaseId($releaseId)
+	{
+		$this->releaseId = (int) $releaseId;
+	}
+
+	/**
 	 * Check if the provided $tag implies that this is a pre-release.
 	 *
 	 * @param   string  $tag
@@ -363,6 +387,30 @@ class GitHubReleaseTask extends GitHubTask
 		}
 
 		return null;
+	}
+
+	/**
+	 * Get a release by its numeric ID.
+	 *
+	 * @param   int  $id  The release ID to fetch
+	 *
+	 * @return  array|null  The release or, if it doesn't exist, null
+	 */
+	private function getReleaseById(int $id)
+	{
+		try
+		{
+			return $this->client->api('repo')->releases()->show($this->organization, $this->repository, $id);
+		}
+		catch (HttpException $e)
+		{
+			if ($e->getCode() == 404)
+			{
+				return null;
+			}
+
+			throw $e;
+		}
 	}
 
 	/**
