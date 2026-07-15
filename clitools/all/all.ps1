@@ -4,7 +4,8 @@
 
 Param(
 	[string]$operation,
-	[string]$sitepath
+	[string]$sitepath,
+	[switch]$files
 )
 
 function showUsage()
@@ -15,7 +16,7 @@ function showUsage()
 	Write-Host "pull     Pull from Git"
 	Write-Host "push     Push to Git"
 	Write-Host "tidy     Perform local Git repo housekeeping"
-	Write-Host "status   Report repositories with uncommitted changes"
+	Write-Host "status   Report repositories with uncommitted changes (use -files to list files)"
 	Write-Host "branch   Which Git branch am I in?"
 	Write-Host "cloneme  Generate git clone commands"
 	Write-Host "version  Latest version versus latest tag information"
@@ -143,10 +144,40 @@ Get-ChildItem -Directory | ForEach-Object {
 		}
 
 		"status" {
-			if ( (git status --porcelain | Measure-Object -Line).Lines -gt 0)
+			$statusOutput = git status --porcelain
+
+			if ($statusOutput.Count -gt 0)
 			{
 				Write-Host "Dirty " -Foreground Red -NoNewline
 				Write-Host $d -Foreground Cyan
+
+				if ($files)
+				{
+					foreach ($statusLine in $statusOutput)
+					{
+						$status = $statusLine.Substring(0, 2)
+						$file = $statusLine.Substring(3)
+
+						if ($status -eq "??")
+						{
+							$icon = "❓"
+						}
+						elseif ($status.Contains("D"))
+						{
+							$icon = "❌"
+						}
+						elseif ($status.Contains("A"))
+						{
+							$icon = "✨"
+						}
+						else
+						{
+							$icon = "✏️"
+						}
+
+						Write-Host "   $icon $file"
+					}
+				}
 			}
 		}
 
