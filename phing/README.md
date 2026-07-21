@@ -25,6 +25,20 @@ Include it in your own Phing script with:
 
 `<import file="${phing.dir}/../../buildfiles/phing/common.xml" />`
 
+### Validating a build file
+
+The shared script includes a Relax NG grammar based on the grammar shipped with Phing 3.1.2. It has local fixes for Phing's camel-case attributes and extensions for the custom GitHub release, site relinking, and archive tasks used by this build system.
+
+Validate the importing project's main build file with:
+
+```sh
+vendor/bin/phing validate-build
+```
+
+The target validates `${phing.file}` against `schema/phing-grammar.rng`. Keep it opt-in: projects can define additional tasks dynamically, so a shared grammar can only describe custom tasks that have been added to it.
+
+PhpStorm's Phing plugin should remain enabled for build-file completion. If its bundled task metadata reports false errors, disable only the **Phing DOM inspection** under **Settings | Editor | Inspections | PHP | Phing**; completion remains available. PhpStorm does not provide a project-level file-pattern mapping from namespace-free XML files to a Relax NG grammar, so the shared RNG is the authoritative command-line validator rather than the completion source.
+
 ### Build properties
 
 The common Phing script relies on build properties to customise it. A list of all available options and their explanations can be found in the `default.properties` file shipped in this directory.

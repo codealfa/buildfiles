@@ -81,6 +81,13 @@
 			depends="git,documentation">
 	</target>
 
+	<!-- Validate the importing project's main build file against the shared grammar. -->
+	<target name="validate-build" description="Validates the main Phing build file">
+		<xmllint file="${phing.file}"
+				 schema="${phing.dir.common}/schema/phing-grammar.rng"
+				 useRNG="true" />
+	</target>
+
 	<!--
 	Generate the installation packages. By default it generates a development build. You can pass a specific version
 	number to make a numbered version release, e.g. `phing git -Dversion=1.2.3` to build version 1.2.3
