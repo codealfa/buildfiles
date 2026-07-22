@@ -12,11 +12,12 @@ usage() {
   echo "pull	  Pull from Git"
   echo "push	  Push to Git"
   echo "tidy	  Perform local Git repo housekeeping"
-  echo "status  Report repositories with uncommitted changes"
+  echo "status  Report repositories with uncommitted changes (use --files to list files)"
   echo "branch  Which branch am I in?"
   echo "cloneme Generate git clone commands"
   echo "version Latest version versus latest tag information"
   echo "tag     Latest Git tag and its date"
+  echo "icopy   Copy a file into each first-level .idea directory"
   echo "install Hard-link this tool into all first-level subdirectories"
   echo -e $COLOR_BLUE"Using Akeeba Build Files"$COLOR_NC
   echo "build   Run the Phing 'git' task to rebuild the software"
@@ -49,6 +50,62 @@ if [ $# -lt 1 ]; then
   usage
 
   exit 255
+fi
+
+STATUS_FILES=false
+
+if [[ "$1" == "status" && "$2" == "--files" ]]; then
+  STATUS_FILES=true
+fi
+
+print_status_files() {
+  local status_line status file icon
+
+  while IFS= read -r status_line; do
+    status="${status_line:0:2}"
+    file="${status_line:3}"
+
+    if [[ "$status" == "??" ]]; then
+      icon="❓"
+    elif [[ "$status" == *"D"* ]]; then
+      icon="❌"
+    elif [[ "$status" == *"A"* ]]; then
+      icon="✨"
+    else
+      icon="✏️"
+    fi
+
+    printf '   %s %s\n' "$icon" "$file"
+  done
+}
+
+if [[ "$1" == "icopy" ]]; then
+  if [ $# -ne 2 ]; then
+    echo -e "${COLOR_LIGHT_RED}The icopy command requires a reference file.${COLOR_NC}" >&2
+    exit 1
+  fi
+
+  if [[ ! -f "$2" ]]; then
+    echo -e "${COLOR_LIGHT_RED}Reference file '$2' does not exist or is not a regular file.${COLOR_NC}" >&2
+    exit 1
+  fi
+
+  REFERENCE_FILE="$(cd "$(dirname "$2")" && pwd)/$(basename "$2")"
+
+  echo -e $COLOR_WHITE"All – Copying to .idea directories"$COLOR_NC
+  echo ""
+
+  find . -mindepth 1 -maxdepth 1 -type d -print0 |
+  while IFS= read -r -d '' directory; do
+    idea_directory="$directory/.idea"
+
+    if [[ -d "$idea_directory" ]]; then
+      echo -e "$COLOR_BROWN"Copying to "$COLOR_CYAN$idea_directory$COLOR_NC"
+      cp -f "$REFERENCE_FILE" "$idea_directory/$(basename "$REFERENCE_FILE")"
+    fi
+  done
+
+  exit 0
 fi
 
 if [[ "$1" == "install" ]]; then
@@ -183,9 +240,13 @@ for d in *; do
 
   status)
     #i=`expr $(git status --porcelain 2>/dev/null| egrep "^(M| M)" | wc -l)`
-    i=$(expr $(git status --porcelain 2>/dev/null | wc -l))
-    if [ $i -ne 0 ]; then
+    STATUS_OUTPUT=$(git status --porcelain 2>/dev/null)
+    if [[ -n "$STATUS_OUTPUT" ]]; then
       echo -e $COLOR_LIGHT_RED"Dirty $COLOR_CYAN$d"$COLOR_NC
+
+      if [[ "$STATUS_FILES" == true ]]; then
+        printf '%s\n' "$STATUS_OUTPUT" | print_status_files
+      fi
     fi
     ;;
 

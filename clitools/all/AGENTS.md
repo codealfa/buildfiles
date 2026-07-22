@@ -20,11 +20,12 @@ Both scripts:
 | `pull`    | `git pull --all -p -t --jobs=4` — fetch all remotes, prune dead refs, fetch tags, use 4 parallel jobs |
 | `push`    | `git push` (current branch) + `git push --tags` (all tags) |
 | `tidy`    | `git remote prune origin` + `git gc` |
-| `status`  | Print repo name only when there are uncommitted changes (`git status --porcelain`) |
+| `status`  | Print repo name only when there are uncommitted changes; `./all status --files` (or PowerShell `-operation status -files`) also prints each changed file with a status emoji |
 | `branch`  | Print repo name + current branch; colour-coded: green = `development`, yellow = `master`/`main`/`kyrion`, red = anything else |
 | `cloneme` | Print `git clone` commands to reproduce the current checkout; appends a `git switch` line when HEAD is on a tag |
 | `version` | Compare the highest version number found in `CHANGELOG` / `CHANGELOG.md` against the latest Git tag; prints "Unreleased" or "Released" accordingly |
 | `tag`     | Print the most recent tag and its relative date (`git for-each-ref --sort=-taggerdate`) |
+| `icopy`   | Copy the supplied reference file into the `.idea/` directory of every first-level directory that has one, overwriting a file with the same name |
 | `build`   | Run `phing git` from either the repo root (if `build.xml` exists) or the `build/` subdirectory |
 | `link`    | Run `phing link` from either the repo root (if `build.xml` exists) or the `build/` subdirectory |
 | `relink`  | Run `phing relink -Dsite=<path>` — takes a second argument (the site path) |
