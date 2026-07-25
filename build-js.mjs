@@ -5,6 +5,11 @@
  *
  * Processes every *.js file in <source-dir> that is not already a *.min.js file,
  * writing <name>.min.js and <name>.min.js.map alongside the source.
+ *
+ * Terser is run with its working directory set to <source-dir> and is handed bare
+ * file names. Terser records paths in the source map exactly as they are given on
+ * the command line, so this keeps the map's "sources" relative (`gmail.js`) instead
+ * of leaking the absolute path of the build machine into a shipped artifact.
  */
 
 import { execFileSync } from 'child_process';
@@ -29,19 +34,19 @@ if (!files.length) {
 }
 
 for (const file of files) {
-	const src  = join(srcDir, file);
 	const name = basename(file, '.js');
-	const out  = join(srcDir, `${name}.min.js`);
-	const map  = `${out}.map`;
+	const out  = `${name}.min.js`;
 
+	// `filename` sets the source map's "file" field; the map itself is always written
+	// next to --output, as <output>.map.
 	execFileSync(terser, [
-		src,
+		file,
 		'--compress',
 		'--mangle',
 		'--comments', 'false',
 		'--output', out,
-		'--source-map', `filename=${map},url=${name}.min.js.map`,
-	], { stdio: 'inherit' });
+		'--source-map', `filename=${out},url=${out}.map`,
+	], { cwd: srcDir, stdio: 'inherit' });
 
-	console.log(`  Built: ${out}`);
+	console.log(`  Built: ${join(srcDir, out)}`);
 }

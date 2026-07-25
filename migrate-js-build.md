@@ -95,9 +95,9 @@ infinite loop).
    | File type | `JavaScript` |
    | Scope | `JS Sources` (the scope created above) |
    | Program | `$ProjectFileDir$/../buildfiles/node_modules/.bin/terser` |
-   | Arguments | `$FilePath$ --compress --mangle --comments false --output $FileDir$/$FileNameWithoutExtension$.min.js --source-map filename=$FileDir$/$FileNameWithoutExtension$.min.js.map,url=$FileNameWithoutExtension$.min.js.map` |
+   | Arguments | `$FileName$ --compress --mangle --comments false --output $FileNameWithoutExtension$.min.js --source-map filename=$FileNameWithoutExtension$.min.js,url=$FileNameWithoutExtension$.min.js.map` |
    | Output paths to refresh | `$FileDir$/$FileNameWithoutExtension$.min.js:$FileDir$/$FileNameWithoutExtension$.min.js.map` |
-   | Working directory | `$ProjectFileDir$` |
+   | Working directory | `$FileDir$` |
    | Environment variables | `NODE_PATH=$ProjectFileDir$/../buildfiles/node_modules` |
 
 4. Expand **Advanced Options** and make sure **Auto-save edited files to trigger the watcher** is ticked.
@@ -109,3 +109,5 @@ infinite loop).
 - The watcher uses the Terser binary from the BuildFiles working copy. We suppose it's a sibling folder to the current project's working copy. Run `npm install` in the Buildfiles repository root before expecting the watcher to work.
 - The `Output paths to refresh` field tells PhpStorm which files to reload in the editor after Terser runs, so the in-editor view stays in sync.
 - The Environment Variables are absolutely necessary. They tell Node.js to use the node_modules directory under the BuildFiles working copy instead of under your project.
+- The `Working directory` is the directory of the edited file, and the arguments use bare file names (`$FileName$`, not `$FilePath$`). Terser records paths in the source map exactly as they are given on the command line, so passing absolute paths would bake the absolute path of your own machine into the shipped `.min.js.map` — a map that resolves for nobody else. Keep these relative.
+- `--source-map filename=` sets the `file` field *inside* the map and must name the minified JavaScript, not the map itself. The map is always written next to `--output`, as `<output>.map`; `filename` does not control where it lands.
