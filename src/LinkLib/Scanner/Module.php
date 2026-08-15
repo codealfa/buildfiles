@@ -227,12 +227,7 @@ class Module extends AbstractScanner
 
 				if ($translationsRoot)
 				{
-					$languageRoot = $translationsRoot . '/modules/' . $section . '/' . $extName;
-
-					if (!is_dir($languageRoot))
-					{
-						$languageRoot = null;
-					}
+					$languageRoot = $translationsRoot;
 				}
 
 				// Get the extension ScannerInterface object

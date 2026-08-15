@@ -215,12 +215,7 @@ class Template extends AbstractScanner
 
 				if ($translationsRoot)
 				{
-					$languageRoot = $translationsRoot . '/templates/' . $section . '/' . $extName;
-
-					if (!is_dir($languageRoot))
-					{
-						$languageRoot = null;
-					}
+					$languageRoot = $translationsRoot;
 				}
 
 				// Get the extension ScannerInterface object

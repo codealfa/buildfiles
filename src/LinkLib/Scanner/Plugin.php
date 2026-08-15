@@ -211,12 +211,7 @@ class Plugin extends AbstractScanner
 
 				if ($translationsRoot)
 				{
-					$languageRoot = $translationsRoot . '/plugins/' . $section . '/' . $extName;
-
-					if (!is_dir($languageRoot))
-					{
-						$languageRoot = null;
-					}
+					$languageRoot = $translationsRoot;
 				}
 
 				// Get the extension ScannerInterface object
