@@ -36,10 +36,13 @@
 	<property name="site" value="${build.relink_site}" />
 	<property name="sitewp" value="${build.relink_sitewp}" />
 
-	<!-- ### Overrideable parameters -->
-	<property name="build.package_base_name" value="${build.component}" />
+	<!-- ### Release management -->
+	<!-- Security context: ``, `none`, `low`, `medium`, `high`, `critical` -->
+	<property name="security" value="" />
 
     <!-- Load externally defined properties -->
+	<!-- ### Overrideable parameters -->
+	<property name="build.package_base_name" value="${build.component}" />
     <!-- ### Default properties -->
     <property file="${phing.dir.common}/default.properties" />
     <!-- ### Common properties, above the working copy's root -->
@@ -430,6 +433,8 @@
 	<!--
     Uses Akeeba Release maker to deploy new releases to a remote Akeeba Release System installation.
 
+	security					Security context: ``, `none`, `low`, `medium`, `high`, `critical`
+
     release.method				json, yaml or github
 
     release.source              Absolute path and filename to the release.json prototype we're going to use
@@ -527,6 +532,7 @@
                 <replacetokens begintoken="##" endtoken="##">
                     <token key="DATE" value="${build.date}" />
                     <token key="VERSION" value="${version}" />
+                    <token key="SECURITY" value="${security}" />
 
                     <token key="RELEASEDIR" value="${dirs.release.translated}" />
                     <token key="REPODIR" value="${dirs.root.translated}" />
@@ -600,7 +606,7 @@
         </phingcall>
     </target>
 
-	<target name="release-yaml" depends="setup-properties" description="Use Akeeba Release Maker 2 to deploy software">
+	<target name="release-yaml" depends="setup-properties" description="Use Akeeba Release Maker to deploy software">
 		<phingcall target="onBeforeRelease">
 		</phingcall>
 
@@ -620,6 +626,7 @@
 				<replacetokens begintoken="%%" endtoken="%%">
 					<token key="DATE" value="${build.date}" />
 					<token key="VERSION" value="${version}" />
+					<token key="SECURITY" value="${security}" />
 
 					<token key="RELEASEDIR" value="${dirs.release}" />
 					<token key="RELEASEACCESS" value="${release.access}" />
@@ -696,7 +703,7 @@
 			<arg file="${dirs.root}/release.yaml" />
 		</exec>
 
-		<delete file="${dirs.root}/release.yaml" quiet="true" />
+<!--		<delete file="${dirs.root}/release.yaml" quiet="true" />-->
 
 		<phingcall target="onAfterRelease">
 		</phingcall>
@@ -776,9 +783,15 @@
 
 	This is a modified release task, making sure there is no valid version or core/pro/pdf file upload pattern.
 	-->
-	<target name="update" depends="setup-properties" description="Use Akeeba Release Maker to deploy software">
+	<target name="update" depends="setup-properties" description="Use Akeeba Release Maker to deploy software udpates only">
 		<phingcall target="release">
 			<property name="release.steps" value="${release.steps_update}" />
+		</phingcall>
+	</target>
+
+	<target name="debug_release" depends="setup-properties" description="Use Akeeba Release Maker to generate the release file only; no deployment">
+		<phingcall target="release">
+			<property name="release.steps" value="${release.steps_prepare}" />
 		</phingcall>
 	</target>
 
