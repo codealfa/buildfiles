@@ -703,7 +703,7 @@
 			<arg file="${dirs.root}/release.yaml" />
 		</exec>
 
-<!--		<delete file="${dirs.root}/release.yaml" quiet="true" />-->
+		<delete file="${dirs.root}/release.yaml" quiet="true" />
 
 		<phingcall target="onAfterRelease">
 		</phingcall>
