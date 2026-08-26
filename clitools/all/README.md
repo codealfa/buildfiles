@@ -2,6 +2,8 @@
 
 This script can be used under any bash shell such as the one commonly used in Linux and Mac OS X, or the bash shell provided in Windows by Git Bash, Cygwin etc. It is meant to iterate through each of the subdirectories, figure out if it contains a Git repository and then pull or push it.
 
+A first-level subdirectory qualifies as a repository only when its `.git` entry is a directory. Git worktrees and submodules, whose `.git` entry is normally a file, are intentionally not processed.
+
 Usage: ./all <command>
 
 Pulling all repositories:

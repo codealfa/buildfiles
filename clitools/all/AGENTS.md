@@ -10,6 +10,8 @@ Run `./all` with no arguments for the list of commands.
 
 Every qualifying Git repo is processed regardless of remote URL — the old GitHub-only filter is intentionally disabled/removed in both scripts.
 
+The Bash script qualifies a first-level subdirectory as a Git repository only when `.git` is a directory. This deliberately excludes Git worktrees and submodules, whose `.git` entry is normally a file.
+
 ## Command Parity
 
 The two scripts are not feature-identical:

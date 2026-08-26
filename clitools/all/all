@@ -177,7 +177,7 @@ for d in *; do
   fi
 
   # Go into the directory
-  pushd $d >/dev/null
+  pushd "$d" >/dev/null
 
 #  THISREPO_LINES=$(git remote -v | grep git@github.com | wc -l | awk '{print $1}')
 #
@@ -211,11 +211,11 @@ for d in *; do
     ZZZ_REMOTE=$(git config --get remote.origin.url)
     ZZZ_TAG=$(git describe --exact-match --tags 2>/dev/null)
 
-    echo git clone --single-branch -b $ZZZ_CUR_BRANCH "$ZZZ_REMOTE" $d
+    printf 'git clone --single-branch -b %q %q %q\n' "$ZZZ_CUR_BRANCH" "$ZZZ_REMOTE" "$d"
 
     if [[ ! -z "$ZZZ_TAG" ]]
     then
-      echo git -C $d switch -c $ZZZ_CUR_BRANCH
+      printf 'git -C %q switch -c %q\n' "$d" "$ZZZ_CUR_BRANCH"
     fi
     ;;
 
@@ -307,8 +307,16 @@ for d in *; do
     else
       CHANGELOG_FILE=CHANGELOG.md
     fi
-    LATEST_VERSION=$(grep -o "[[:blank:]]\([0-9]\{1,\}\.\)\{2\}\\\d\{1,\}" $CHANGELOG_FILE | head -n 1)
-    LATEST_VERSION=$(echo $LATEST_VERSION | sed -e 's/^[[:space:]]*//')
+    VERSION_PATTERN='[[:blank:]]([0-9]+\.){2}[0-9]+'
+
+    if command -v rg >/dev/null 2>&1; then
+      LATEST_VERSION=$(rg --only-matching --max-count 1 "$VERSION_PATTERN" "$CHANGELOG_FILE")
+    else
+      # This POSIX ERE works with both GNU grep and BSD grep (as shipped by macOS).
+      LATEST_VERSION=$(grep -E -o -m 1 "$VERSION_PATTERN" "$CHANGELOG_FILE")
+    fi
+
+    LATEST_VERSION=$(printf '%s\n' "$LATEST_VERSION" | sed -e 's/^[[:space:]]*//')
     LATEST_TAG=$(git describe --abbrev=0 --always)
 
     if [[ "$LATEST_VERSION" != "$LATEST_TAG" ]]
