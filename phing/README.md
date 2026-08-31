@@ -253,8 +253,20 @@ The `value` key takes one of the following:
 * `LIMIT_MAX` One minor version **above** the maximum supported CMS version, e.g. `6.3`.
 
 The `_MAX` values are deliberately one version *above* what you support; they are the first version which is **not**
-supported. This is what your code needs in order to reject a platform which is too new with a simple version
-comparison, without having to know the patch level of the last version it does support.
+supported. Your code must therefore reject anything at, or above, them — `ge`, not `gt` — for both PHP and the CMS:
+
+```php
+if (!empty($maximumPhp) && version_compare(PHP_VERSION, $maximumPhp, 'ge'))
+{
+    // This PHP version is too new; we have not tested with it.
+}
+```
+
+The obvious alternative is declaring the last version you *do* support with an artificially high patch level, e.g.
+`5.4.9999`. Do not do that. It requires you to guess how high the patch level of a version which is not out yet will
+climb, and that guess is not yours to make: there are third party forks of Joomla which backport security fixes, and
+they start their patch numbering at 10000, sailing straight past any sentinel you may have picked. Naming the first
+version you do **not** support sidesteps the guesswork entirely, and says what you actually mean.
 
 > ℹ️ Joomla release trains end at x.4; the version which comes after 5.4 is 6.0, not 5.5. The build script knows this.
 > If your limit is `<=5.4`, or `<6.0`, the `LIMIT_MAX` you get is `6.0`.
