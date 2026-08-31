@@ -155,6 +155,140 @@ If there was neither a changelog, nor a tag which can be used, the fake version 
 
 In any case, the string `-dev`, the date and time, the string `-rev`, and the short Git commit hash will be appended to the version number as version metadata.
 
+## PHP and CMS version constraints
+
+Every project declares the PHP and CMS versions it supports in a dozen different places: the installation script which
+refuses to install on an unsupported platform, the dispatcher which shows a friendly error instead of a fatal, the
+system plugin which needs to bail out early, and so on. Every one of them has to be updated whenever you drop support
+for an old PHP version, or add support for a new CMS release — and forgetting one of them is a bug your users find
+before you do.
+
+Instead, declare the supported versions **once**, in your repository's `composer.json` file, and let the build script
+propagate them to the rest of the codebase.
+
+### Setting it up
+
+Add an `akcompat` key to the `extra` section of your project's `composer.json`:
+
+```json
+{
+  "require": {
+    "php": ">=8.1.0 <8.7"
+  },
+  "extra": {
+    "akcompat": {
+      "limit_type": "joomla",
+      "limit": ">=5.3.0 <6.3",
+      "locations": [
+        {
+          "file": "component/script.something.php",
+          "type": "variable",
+          "marker": "$minimumPhp",
+          "value": "PHP_MIN"
+        },
+        {
+          "file": "component/script.something.php",
+          "type": "variable",
+          "marker": "$maximumPhp",
+          "value": "PHP_MAX"
+        },
+        {
+          "file": "component/script.something.php",
+          "type": "variable",
+          "marker": "$minimumJoomla",
+          "value": "LIMIT_MIN"
+        },
+        {
+          "file": "component/script.something.php",
+          "type": "variable",
+          "marker": "$maximumJoomla",
+          "value": "LIMIT_MAX"
+        },
+        {
+          "file": "component/backend/src/Dispatcher/Dispatcher.php",
+          "type": "variable",
+          "marker": "$minPHPVersion",
+          "value": "PHP_MIN"
+        },
+        {
+          "file": "plugins/system/whatever/src/Extension/Whatever.php",
+          "type": "variable",
+          "marker": "$minimumPhp",
+          "value": "PHP_MIN"
+        }
+      ]
+    }
+  }
+}
+```
+
+The supported versions themselves come from two places:
+
+* **PHP** from the standard Composer `require.php` key. You are declaring this anyway; it is not duplicated here.
+* **The CMS** from `extra.akcompat.limit`. It uses the same [Composer version constraint
+  syntax](https://getcomposer.org/doc/articles/versions.md) as `require.php`.
+
+`extra.akcompat.limit_type` tells the build script which CMS the limit refers to. Use `joomla` or `wordpress`. Omit
+both `limit` and `limit_type` for standalone and CLI applications, which run outside a CMS.
+
+> ⚠️ Always declare an **upper** limit, e.g. `<8.7`, not just a lower one. Without it the software claims to support
+> every future version of PHP and of the CMS, which is the very thing these declarations exist to prevent.
+
+### The declaration locations
+
+Each entry in `locations` describes one place in your codebase which repeats a version number:
+
+| Key      | Meaning                                                                                             |
+|----------|-----------------------------------------------------------------------------------------------------|
+| `file`   | The file to edit, relative to the repository root, i.e. the directory holding your `composer.json`.  |
+| `type`   | How the version is declared in that file. Only `variable` is currently supported.                    |
+| `marker` | What to look for. For the `variable` type this is the name of a PHP variable, or property.           |
+| `value`  | Which of the four version numbers to write there. See below.                                         |
+
+The `value` key takes one of the following:
+
+* `PHP_MIN` The minimum supported PHP version, e.g. `8.1.0`.
+* `PHP_MAX` One minor version **above** the maximum supported PHP version, e.g. `8.7`.
+* `LIMIT_MIN` The minimum supported CMS version, e.g. `5.3.0`.
+* `LIMIT_MAX` One minor version **above** the maximum supported CMS version, e.g. `6.3`.
+
+The `_MAX` values are deliberately one version *above* what you support; they are the first version which is **not**
+supported. This is what your code needs in order to reject a platform which is too new with a simple version
+comparison, without having to know the patch level of the last version it does support.
+
+> ℹ️ Joomla release trains end at x.4; the version which comes after 5.4 is 6.0, not 5.5. The build script knows this.
+> If your limit is `<=5.4`, or `<6.0`, the `LIMIT_MAX` you get is `6.0`.
+
+The `variable` type matches an assignment of a quoted string to the named variable or property, e.g.
+`protected $minimumPhp = '8.1.0';` or `$minimumPhp = "8.1.0";`. The quote style is preserved, and every declaration of
+that variable in the file is updated. Assignments through `$this`, e.g. `$this->minimumPhp = '8.1.0';`, are skipped
+unless you write the marker as `$this->minimumPhp`.
+
+### Applying the constraints
+
+The constraints are applied automatically every time you build your software with `phing git`. You can also apply them
+on their own:
+
+```
+phing version-constraints
+```
+
+This rewrites every declaration location whose version number is out of date, and reports what it changed. Files which
+are already up–to–date are left alone, so it is safe to run at any time, and it will not dirty your working copy for no
+reason.
+
+> ℹ️ If your repository has no `composer.json` file in its root, this does nothing at all. Nothing needs to be
+> configured, and nothing breaks, in projects which have not set this up.
+
+Finally, the `all` CLI tool shipped with this repository can report the supported version range of every one of your
+projects at a glance:
+
+```
+$ ./all vlimits
+akeebabackup             PHP 7.4 – 8.6, Joomla! 4.4 – 6.2
+someclitool              PHP 8.1 – 8.x
+```
+
 ## Joomla! components
 
 The Common Phing Script is designed to easily build installation packages for Joomla! components without much fussing around.

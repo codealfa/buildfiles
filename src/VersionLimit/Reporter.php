@@ -41,7 +41,7 @@ class Reporter
 		$limits = new DeclaredLimits($composerFile);
 		$parts  = [];
 
-		$phpRange = $this->formatRange($limits->getMinPHP(), $limits->getMaxPHP());
+		$phpRange = $this->formatRange($limits->getMinPHP(), $limits->getMaxSupportedPHP());
 
 		if ($phpRange !== null)
 		{
@@ -52,7 +52,7 @@ class Reporter
 		 * Skip the CMS constraints when no limit expression is declared. Standalone and CLI applications run outside of
 		 * a CMS; reporting an unbounded CMS version range for them would be nonsense.
 		 */
-		$limitRange = $this->formatRange($limits->getMinLimit(), $limits->getMaxLimit());
+		$limitRange = $this->formatRange($limits->getMinLimit(), $limits->getMaxSupportedLimit());
 
 		if ($limitRange !== null)
 		{
@@ -84,28 +84,36 @@ class Reporter
 	}
 
 	/**
-	 * Formats a lower and an upper version limit as a Composer–like version constraint.
+	 * Formats the supported version range in a way which can be understood at a glance.
 	 *
-	 * @param   string  $min  The lower limit, inclusive.
-	 * @param   string  $max  The upper limit, exclusive.
+	 * Both ends are reported as major.minor version families; the patch versions only get in the way when all you want
+	 * to know is which versions of PHP, or of the CMS, a project supports.
 	 *
-	 * @return  string|null  The formatted constraint, NULL if neither limit is declared.
+	 * @param   string       $min  The minimum supported version.
+	 * @param   string|null  $max  The maximum supported version family, NULL if there is no upper limit.
+	 *
+	 * @return  string|null  The formatted range, NULL if neither limit is declared.
 	 */
-	private function formatRange(string $min, string $max): ?string
+	private function formatRange(string $min, ?string $max): ?string
 	{
-		$parts = [];
+		$hasMin = $min !== DeclaredLimits::NO_LOWER_LIMIT;
 
-		if ($min !== DeclaredLimits::NO_LOWER_LIMIT)
+		if ($hasMin && $max !== null)
 		{
-			$parts[] = '>=' . $min;
+			return Version::create($min)->versionFamily() . ' – ' . $max;
 		}
 
-		if ($max !== DeclaredLimits::NO_UPPER_LIMIT)
+		if ($hasMin)
 		{
-			$parts[] = '<' . $max;
+			return Version::create($min)->versionFamily() . ' and later';
 		}
 
-		return empty($parts) ? null : implode(' ', $parts);
+		if ($max !== null)
+		{
+			return 'up to ' . $max;
+		}
+
+		return null;
 	}
 
 	/**

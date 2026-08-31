@@ -267,6 +267,26 @@ class DeclaredLimits
 	}
 
 	/**
+	 * Retrieves the maximum supported PHP version family, e.g. `8.3`.
+	 *
+	 * @return  string|null  The maximum supported PHP version family, NULL if there is no upper limit.
+	 */
+	public function getMaxSupportedPHP(): ?string
+	{
+		return $this->getMaxSupportedVersion($this->maxPHP);
+	}
+
+	/**
+	 * Retrieves the maximum supported CMS version family, e.g. `6.2`.
+	 *
+	 * @return  string|null  The maximum supported CMS version family, NULL if there is no upper limit.
+	 */
+	public function getMaxSupportedLimit(): ?string
+	{
+		return $this->getMaxSupportedVersion($this->maxLimit, $this->limitType === 'joomla');
+	}
+
+	/**
 	 * Retrieves the type of the CMS the version limit applies to, e.g. `joomla`.
 	 *
 	 * @return  string|null  The lowercase CMS type, NULL if none is declared.
@@ -291,6 +311,46 @@ class DeclaredLimits
 		}
 
 		return Version::create($lowerBound->getVersion())->shortVersion(true);
+	}
+
+	/**
+	 * Converts the version above the upper limit into the maximum supported version family.
+	 *
+	 * This is the inverse of getVersionAboveUpperBound(): given the first unsupported version family it returns the
+	 * last supported one, e.g. 8.4 becomes 8.3.
+	 *
+	 * The x.0 case is the awkward one: the maximum supported version is the last minor version of the previous major
+	 * version, and how many minor versions that had depends on the software. We know that Joomla release trains end at
+	 * x.4. We cannot know how many minor versions a PHP, or a WordPress, major version will end up having — least of
+	 * all for a major version which is not out yet — so we report the whole major version family instead, e.g. `8.x`.
+	 *
+	 * @param   string  $aboveUpperLimit  The version right above the maximum supported one.
+	 * @param   bool    $assumeJoomla     Whether to assume Joomla-style versioning (x.4 is the last of the x train)
+	 *
+	 * @return  string|null  The maximum supported version family, NULL if there is no upper limit.
+	 */
+	private function getMaxSupportedVersion(string $aboveUpperLimit, bool $assumeJoomla = false): ?string
+	{
+		if ($aboveUpperLimit === self::NO_UPPER_LIMIT)
+		{
+			return null;
+		}
+
+		$parsedVersion = Version::create($aboveUpperLimit);
+		$major         = $parsedVersion->major();
+		$minor         = $parsedVersion->minor();
+
+		if ($minor > 0)
+		{
+			return sprintf('%d.%d', $major, $minor - 1);
+		}
+
+		if ($major < 1)
+		{
+			return null;
+		}
+
+		return $assumeJoomla ? sprintf('%d.4', $major - 1) : sprintf('%d.x', $major - 1);
 	}
 
 	/**

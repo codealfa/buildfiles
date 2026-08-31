@@ -28,9 +28,14 @@ Reporting the declared version constraints:
 
 `$ ./all vlimits`
 
-This prints the PHP and CMS version constraints each repository declares in its `composer.json` file — `require.php` for
-PHP, and `extra.akcompat.limit` / `extra.akcompat.limit_type` for the CMS. Repositories which declare neither print
-"No constraints"; standalone and CLI projects, which run outside a CMS, print their PHP constraints only.
+This prints the range of PHP and CMS versions each repository supports, as declared in its `composer.json` file —
+`require.php` for PHP, and `extra.akcompat.limit` / `extra.akcompat.limit_type` for the CMS. Both ends of the range are
+major.minor version families, e.g. `PHP 7.4 – 8.3`. Repositories which declare neither print "No constraints";
+standalone and CLI projects, which run outside a CMS, print their PHP range only.
+
+When the constraint ends at a major version, e.g. `<9.0`, the last supported minor version is unknowable — nobody knows
+how many minor versions PHP 8 will end up having — so the whole major version family is reported instead: `7.4 – 8.x`.
+Joomla is the exception: its release trains end at x.4, so `<6.0` is correctly reported as `4.4 – 5.4`.
 
 This command needs PHP, and the buildfiles repository: either a `buildfiles` subdirectory next to the `all` script, or
 the script's original location inside the buildfiles repository itself.
