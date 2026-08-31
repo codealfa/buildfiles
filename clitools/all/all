@@ -24,6 +24,7 @@ usage() {
   echo "link    Internal relink"
   echo "relink  Relink to a site, e.g. %0 relink /var/www/mysite"
   echo "update  Push updates to the CDN (uses Akeeba Release Maker)"
+  echo "vlimits Report the declared PHP and CMS version constraints"
 
   exit 255
 }
@@ -45,6 +46,14 @@ COLOR_BROWN='\033[0;33m'
 COLOR_YELLOW='\033[1;33m'
 COLOR_GRAY='\033[0;30m'
 COLOR_LIGHT_GRAY='\033[0;37m'
+
+# Italics, if and only if we are writing to a terminal which supports them. Note that these are the actual escape
+# sequences reported by terminfo, not the backslash escapes used for the colours above.
+TEXT_ITALIC=''
+
+if [[ -t 1 ]] && command -v tput >/dev/null 2>&1; then
+  TEXT_ITALIC=$(tput sitm 2>/dev/null)
+fi
 
 if [ $# -lt 1 ]; then
   usage
@@ -155,6 +164,25 @@ if [[ "$1" == "install" ]]; then
   done
 
   exit 0
+fi
+
+# The vlimits command is implemented in PHP; reimplementing Composer's version constraint parsing in Bash would be a
+# fool's errand. Find the buildfiles repository which provides it.
+#
+# This script is hard-linked in place (see the install command), therefore we cannot rely on its own location being
+# inside the buildfiles repository. We look for a buildfiles subdirectory next to the script — which is how the linked
+# copies see it — and only if that fails do we try two levels up, which is where the original script lives.
+if [[ "$1" == "vlimits" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+  if [[ -d "$SCRIPT_DIR/buildfiles/src/VersionLimit" ]]; then
+    VLIMITS_SCRIPT="$SCRIPT_DIR/buildfiles/src/VersionLimit/Reporter.php"
+  elif [[ -d "$SCRIPT_DIR/../../src/VersionLimit" ]]; then
+    VLIMITS_SCRIPT="$(cd "$SCRIPT_DIR/../.." && pwd)/src/VersionLimit/Reporter.php"
+  else
+    echo -e "${COLOR_LIGHT_RED}Cannot find the buildfiles repository; it must be a 'buildfiles' subdirectory next to this script.${COLOR_NC}" >&2
+    exit 1
+  fi
 fi
 
 echo -e $COLOR_WHITE"All – Loop all Git repositories"$COLOR_NC
@@ -327,6 +355,24 @@ for d in *; do
       echo -en "${COLOR_LIGHT_GREEN}Released   $COLOR_CYAN$d$COLOR_NC "
       echo -e "$COLOR_BROWN$LATEST_TAG$COLOR_NC"
     fi
+    ;;
+
+  vlimits)
+    VLIMITS_INFO=$(php "$VLIMITS_SCRIPT" "$PWD")
+    ZZZ_COLOR=$COLOR_BROWN
+
+    if [[ "$VLIMITS_INFO" == "No constraints" ]]; then
+      ZZZ_COLOR="$COLOR_LIGHT_GRAY$TEXT_ITALIC"
+    fi
+
+    # Colour the platform names, leaving the version constraints themselves in ZZZ_COLOR
+    VLIMITS_INFO="${VLIMITS_INFO//PHP/${COLOR_GREEN}PHP${COLOR_NC}${ZZZ_COLOR}}"
+    VLIMITS_INFO="${VLIMITS_INFO//Joomla!/${COLOR_LIGHT_BLUE}Joomla!${COLOR_NC}${ZZZ_COLOR}}"
+    VLIMITS_INFO="${VLIMITS_INFO//WordPress/${COLOR_RED}WordPress${COLOR_NC}${ZZZ_COLOR}}"
+
+    echo -ne $COLOR_CYAN
+    printf '%-25s' "$d"
+    echo -e "$COLOR_NC$ZZZ_COLOR$VLIMITS_INFO$COLOR_NC"
     ;;
 
   tag)

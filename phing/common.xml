@@ -62,6 +62,7 @@
 	<taskdef name="wordpressentrypoint" classname="tasks\WordPressEntryPointTask"/>
 	<taskdef name="GitHubAsset" classname="tasks\GitHubAssetTask" />
 	<taskdef name="GitHubRelease" classname="tasks\GitHubReleaseTask" />
+	<taskdef name="ApplyVersionConstraints" classname="tasks\ApplyVersionConstraintsTask" />
 	<taskdef name="autoversion" classname="tasks\AutoVersionTask" />
 	<taskdef name="bladeawf" classname="tasks\BladeAwfTask" />
 	<taskdef name="curlsftp" classname="tasks\CurlSftpTask" />
@@ -89,7 +90,17 @@
 	number to make a numbered version release, e.g. `phing git -Dversion=1.2.3` to build version 1.2.3
 	-->
 	<target name="git" description="Makes only packages, not the documentation"
-			depends="new-release,setup-properties,component-packages">
+			depends="new-release,setup-properties,version-constraints,component-packages">
+	</target>
+
+	<!--
+	Apply the PHP and CMS version constraints declared in the repository's composer.json file to the codebase.
+
+	This does nothing unless there is a composer.json file in the repository root, next to the build.xml file which
+	imports this file.
+	-->
+	<target name="version-constraints" description="Apply the version constraints declared in composer.json">
+		<ApplyVersionConstraints repositoryRoot="${dirs.root}" />
 	</target>
 
     <!--
