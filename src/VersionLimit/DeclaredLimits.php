@@ -215,6 +215,44 @@ class DeclaredLimits
 
 			$this->locations[] = new Location($this, $definition);
 		}
+
+		$this->addPlatformLocation($composer);
+	}
+
+	/**
+	 * Adds the composer.json `config.platform.php` key as a declaration location.
+	 *
+	 * That key repeats the minimum supported PHP version, and drifts out of sync with `require.php` the moment the
+	 * latter is updated without remembering the former. It is a declaration location like any other, we just do not
+	 * expect anyone to list it by hand in every single project.
+	 *
+	 * @param   array  $composer  The parsed contents of the composer.json file.
+	 *
+	 * @return  void
+	 */
+	private function addPlatformLocation(array $composer): void
+	{
+		// Nothing to keep in sync if the key is not there. We are fixing drift, not imposing the convention.
+		if (!is_string($composer['config']['platform']['php'] ?? null))
+		{
+			return;
+		}
+
+		// We cannot know what the platform version should be if no minimum PHP version is declared.
+		if ($this->minPHP === self::NO_LOWER_LIMIT)
+		{
+			return;
+		}
+
+		$this->locations[] = new Location(
+			$this,
+			[
+				'file'   => basename($this->composerFile),
+				'type'   => 'json',
+				'marker' => 'config.platform.php',
+				'value'  => 'PLATFORM_PHP',
+			]
+		);
 	}
 
 	/**
@@ -264,6 +302,20 @@ class DeclaredLimits
 	public function getMaxLimit(): string
 	{
 		return $this->maxLimit;
+	}
+
+	/**
+	 * Retrieves the PHP version Composer should resolve dependencies against, e.g. `8.1.999`.
+	 *
+	 * This is the `config.platform.php` value in composer.json. It has to be the minimum supported PHP version family,
+	 * with an artificially high patch version, so that Composer picks packages which run on every PHP version we
+	 * support — including the oldest one.
+	 *
+	 * @return  string
+	 */
+	public function getPlatformPHP(): string
+	{
+		return Version::create($this->minPHP)->versionFamily() . '.999';
 	}
 
 	/**

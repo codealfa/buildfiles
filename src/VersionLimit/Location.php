@@ -114,6 +114,7 @@ class Location
 		return match ($this->type)
 		{
 			'variable' => $this->getCurrentVariableLimit($contents),
+			'json' => $this->getCurrentJsonLimit($contents),
 		};
 	}
 
@@ -144,6 +145,7 @@ class Location
 		$newContents = match ($this->type)
 		{
 			'variable' => $this->applyVariableLimit($contents),
+			'json' => $this->applyJsonLimit($contents),
 		};
 
 		// The declaration was not found, or it already has the correct value.
@@ -219,6 +221,127 @@ class Location
 	}
 
 	/**
+	 * Extracts the string value at the marker key path in a JSON file.
+	 *
+	 * @param   string  $contents  The contents of the file to search into.
+	 *
+	 * @return  string|null  The declared version, NULL if there is no such key, or it is not a string.
+	 */
+	private function getCurrentJsonLimit(string $contents): ?string
+	{
+		try
+		{
+			$data = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+		}
+		catch (\JsonException)
+		{
+			return null;
+		}
+
+		foreach ($this->getJsonPath() as $key)
+		{
+			if (!is_array($data) || !array_key_exists($key, $data))
+			{
+				return null;
+			}
+
+			$data = $data[$key];
+		}
+
+		return is_string($data) ? $data : null;
+	}
+
+	/**
+	 * Assigns the version limit to the marker key path in a JSON file.
+	 *
+	 * The file is edited in place, with a targeted replacement, instead of being decoded and re-encoded. JSON files in
+	 * our repositories — composer.json, most notably — are maintained by hand; reformatting the entire file to change a
+	 * version number in it would be obnoxious.
+	 *
+	 * @param   string  $contents  The contents of the file to modify.
+	 *
+	 * @return  string|null  The modified contents, NULL if there is no such key.
+	 */
+	private function applyJsonLimit(string $contents): ?string
+	{
+		$currentValue = $this->getCurrentJsonLimit($contents);
+
+		if ($currentValue === null || !preg_match($this->getJsonRegEx(), $contents, $matches))
+		{
+			return null;
+		}
+
+		/**
+		 * Make sure the targeted replacement landed on the very value we decoded. If it did not, the file has a shape
+		 * our regular expression cannot follow; leaving it alone beats mangling it.
+		 */
+		if ($matches['value'] !== $this->encodeJsonString($currentValue))
+		{
+			return null;
+		}
+
+		$newContents = preg_replace_callback(
+			$this->getJsonRegEx(),
+			fn(array $matches): string => $matches['prefix'] . $this->encodeJsonString($this->value) . '"',
+			$contents,
+			1
+		);
+
+		return $newContents === null ? null : $newContents;
+	}
+
+	/**
+	 * Returns the marker as a JSON key path, e.g. `config.platform.php` becomes ['config', 'platform', 'php'].
+	 *
+	 * @return  string[]
+	 */
+	private function getJsonPath(): array
+	{
+		return array_values(
+			array_filter(
+				array_map(trim(...), explode('.', $this->marker)),
+				fn(string $key): bool => $key !== ''
+			)
+		);
+	}
+
+	/**
+	 * Returns the regular expression matching the string value at the marker key path.
+	 *
+	 * It has two named subpatterns: `prefix` (everything up to and including the opening quote of the value), and
+	 * `value` (the raw, still escaped, declared value).
+	 *
+	 * @return  string
+	 */
+	private function getJsonRegEx(): string
+	{
+		$path  = $this->getJsonPath();
+		$key   = array_pop($path);
+		$regEx = '';
+
+		foreach ($path as $parent)
+		{
+			$regEx .= '"' . preg_quote($parent, '/') . '"\s*:\s*\{.*?';
+		}
+
+		$regEx .= '"' . preg_quote((string) $key, '/') . '"\s*:\s*"';
+
+		return '/(?<prefix>' . $regEx . ')(?<value>(?:\\\\.|[^"\\\\])*)"/s';
+	}
+
+	/**
+	 * Escapes a string for use as a JSON string value, without the enclosing quotes.
+	 *
+	 * @param   string  $value  The value to escape.
+	 *
+	 * @return  string
+	 */
+	private function encodeJsonString(string $value): string
+	{
+		return trim(json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), '"');
+	}
+
+	/**
 	 * Returns the regular expression matching the assignment of a quoted string to the marker variable, or property.
 	 *
 	 * It has three named subpatterns: `prefix` (everything up to and including the opening quote character), `quote`
@@ -250,7 +373,7 @@ class Location
 
 		$this->type = match ($type)
 		{
-			'variable' => $type,
+			'variable', 'json' => $type,
 			default => throw new \RuntimeException(
 				sprintf(
 					'Unknown version limit constraint type ‘%s’',
@@ -290,6 +413,7 @@ class Location
 			'PHP_MAX' => $this->limits->getMaxPHP(),
 			'LIMIT_MIN' => $this->limits->getMinLimit(),
 			'LIMIT_MAX' => $this->limits->getMaxLimit(),
+			'PLATFORM_PHP' => $this->limits->getPlatformPHP(),
 			default => throw new \RuntimeException(
 				sprintf(
 					'Unknown version limit value type ‘%s’',

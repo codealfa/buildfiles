@@ -276,6 +276,42 @@ The `variable` type matches an assignment of a quoted string to the named variab
 that variable in the file is updated. Assignments through `$this`, e.g. `$this->minimumPhp = '8.1.0';`, are skipped
 unless you write the marker as `$this->minimumPhp`.
 
+### The Composer platform PHP version
+
+Most of our projects pin the PHP version Composer resolves dependencies against, in the `config.platform.php` key of
+their composer.json file:
+
+```json
+{
+  "require": {
+    "php": ">=8.1.0 <8.7"
+  },
+  "config": {
+    "platform": {
+      "php": "8.1.999"
+    }
+  }
+}
+```
+
+By convention this is the **minimum** supported PHP version family with an artificially high patch level, so that
+Composer only ever picks packages which run on the oldest PHP version we support. It repeats information already
+present in `require.php`, which means it silently drifts out of sync the moment you raise the minimum PHP version and
+forget to update it in both places.
+
+The build script therefore treats `config.platform.php` as a declaration location like any other, and keeps it in sync
+with `require.php` on its own. You do not need to list it in `extra.akcompat.locations`; it is picked up automatically.
+
+> ℹ️ This only ever *corrects* the key. If your composer.json has no `config.platform.php` key it is left alone — the
+> convention is not imposed on projects which do not follow it. The same goes for a project which declares no
+> `require.php`, where there is nothing to derive the value from.
+
+The composer.json file is edited in place, changing just that one value; it is not decoded and re-encoded, so your
+formatting and key order survive intact.
+
+> ⚠️ Changing the platform PHP version changes how Composer resolves your dependencies. Run `composer update` afterwards
+> so that your `composer.lock` reflects the new floor.
+
 ### Applying the constraints
 
 The constraints are applied automatically every time you build your software with `phing git`. You can also apply them
