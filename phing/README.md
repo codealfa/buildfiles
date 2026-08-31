@@ -337,6 +337,92 @@ akeebabackup             PHP 7.4 – 8.6, Joomla! 4.4 – 6.2
 someclitool              PHP 8.1 – 8.x
 ```
 
+## Advertised compatibility on the download site
+
+Declaring the supported versions in `composer.json` settles what your software *does*. It says nothing about what your
+download site *claims* it does — and those are two separate pieces of information, kept in two separate places.
+
+When Akeeba Release Maker publishes a release it creates an ARS Item for each file, and says nothing at all about which
+PHP or CMS versions that file supports. Akeeba Release System works it out on its own: it looks for a published
+Automatic Item Description whose `packname` glob matches the file name, and copies that record's list of Environments
+onto the new Item. Those Environments are the compatibility badges a customer reads before deciding whether the
+download will work on their site.
+
+Which means the compatibility information of your *next* release is decided by records sitting on the site right now,
+long before anybody runs a release, and nothing keeps those records in step with `composer.json`. Raise the supported
+Joomla! version, publish, and the site happily goes on advertising the range you supported two releases ago.
+
+The `ars-environments` target closes that gap:
+
+```
+phing ars-environments
+```
+
+It cleans the release directory, builds a development release into it, finds the published Automatic Item Descriptions
+which apply to the packages it just built, and repoints them at the Environments your declared version limits actually
+call for — creating any Environment the site does not have yet.
+
+Run it whenever you change the supported version range, and before cutting a release, so that the release goes out
+advertising the truth. Use the dry run to see what it would do without touching anything:
+
+```
+phing ars-environments -Dars.environments.dryrun=1
+```
+
+### What it needs
+
+The site connection is the same one Akeeba Release Maker uses, so if you can already release, you are already
+configured. It reads `release.api.endpoint` and `release.api.token` — and `release.cacert`, if your site needs a custom
+CA bundle — from your privileged build properties.
+
+The ARS category is read from the `release.category` key of your `build/templates/release.yaml` file, which is the
+category the actual release will go into. If that file leaves the category as a `%%RELEASECATEGORY%%` build token, the
+`release.category` build property is used instead.
+
+The API token identifies a Joomla! user, and that user's permissions are enforced. It needs `core.manage` on `com_ars`
+to read anything, `core.edit` on the category to change its Automatic Item Descriptions, and `core.create` on `com_ars`
+itself to create Environments.
+
+### How the version range becomes a list of Environments
+
+An ARS Environment is a `platform/version` pair, e.g. `php/8.3` or `joomla/5.2`. Turning the range "PHP 7.4 to 8.6"
+into the list of families it covers means knowing that the PHP 7 release train ended at 7.4, which is something no
+version number can tell you. That comes from [endoflife.date](https://endoflife.date), whose answers are cached under
+this repository's `cache` directory for a week; a stale cache is used in preference to failing your build over a
+network hiccup.
+
+This gets the awkward cases right on its own. PHP 7 ends at 7.4 and PHP 6 never existed, so `>=5.6 <8.0` covers 5.6,
+7.0 through 7.4, and nothing in between. Joomla! 3 ran to 3.10, well past the x.4 the later trains stop at. And a range
+whose upper end has not been released yet still gets an Environment: `<8.7` creates `php/8.6` whether or not PHP 8.6
+exists, because that is what you have declared support for.
+
+> ℹ️ **WordPress is different.** WordPress Environments are open ended by design: `wordpress/6.0+` means "WordPress 6.0
+> or any later version, including later major versions". One Environment therefore covers the whole supported range,
+> so a WordPress project gets exactly one, built from its *minimum* supported version. The upper limit does not come
+> into it — no WordPress Environment has ever expressed one.
+
+### What it will and will not touch
+
+Only the platforms you have declared an opinion about are managed: `php`, plus whichever CMS your `limit_type` names.
+Within those, the record ends up with exactly the Environments your range calls for, so an Environment you no longer
+support is removed as well as a missing one being added.
+
+Everything else on the record is left exactly as it was found. A documentation package carrying `pdf/1.4`, a record
+declaring `linux/x86-64`, a `wordpress/6.0+` on a Joomla!-only project — none of it is your version limits' business,
+and none of it is touched.
+
+The target matches files the same way ARS itself does, so what you see is what the release will get: an `fnmatch()` of
+`packname` against the file's base name, unpublished records ignored entirely, and an empty `packname` never matching
+anything. Where several records match one file it tells you which one ARS will actually apply, since ARS uses the first
+match by ID and ignores the rest.
+
+Running it twice in a row changes nothing the second time, and it fails loudly rather than quietly if no published
+Automatic Item Description matches the packages you built — because that means your next release would go out with no
+compatibility information at all.
+
+> ℹ️ If your repository has no `composer.json` file in its root, this does nothing at all, the same as the version
+> constraints themselves.
+
 ## Joomla! components
 
 The Common Phing Script is designed to easily build installation packages for Joomla! components without much fussing around.

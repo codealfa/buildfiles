@@ -63,6 +63,7 @@
 	<taskdef name="GitHubAsset" classname="tasks\GitHubAssetTask" />
 	<taskdef name="GitHubRelease" classname="tasks\GitHubReleaseTask" />
 	<taskdef name="ApplyVersionConstraints" classname="tasks\ApplyVersionConstraintsTask" />
+	<taskdef name="arsenvironments" classname="tasks\ArsEnvironmentsTask" />
 	<taskdef name="autoversion" classname="tasks\AutoVersionTask" />
 	<taskdef name="bladeawf" classname="tasks\BladeAwfTask" />
 	<taskdef name="curlsftp" classname="tasks\CurlSftpTask" />
@@ -101,6 +102,32 @@
 	-->
 	<target name="version-constraints" description="Apply the version constraints declared in composer.json">
 		<ApplyVersionConstraints repositoryRoot="${dirs.root}" />
+	</target>
+
+	<!--
+	Make the compatibility information our business site advertises agree with our declared version limits.
+
+	The PHP and CMS versions a released package is marked compatible with do not come from the release. They come from
+	the Automatic Item Descriptions sitting in the Akeeba Release System category this repository releases into, which
+	ARS applies to each new Item by matching its `packname` glob against the file name. Nothing keeps those records in
+	step with the version limits declared in composer.json — so this target does.
+
+	It depends on `new-release` and `git` on purpose: which Automatic Item Descriptions apply is decided by the names of
+	the files in the release directory, so we clear that directory, build a development release into it, and check the
+	records against what we actually built.
+
+	Run `phing ars-environments -Dars.environments.dryrun=1` to see what would change without changing anything.
+	-->
+	<target name="ars-environments" depends="new-release,git"
+			description="Sync the advertised PHP/CMS compatibility of the next release with composer.json">
+		<arsenvironments repositoryRoot="${dirs.root}"
+						 releaseDir="${dirs.release}"
+						 releaseYaml="${dirs.templates}/release.yaml"
+						 category="${release.category}"
+						 endpoint="${release.api.endpoint}"
+						 token="${release.api.token}"
+						 cacert="${release.cacert}"
+						 dryRun="${ars.environments.dryrun}" />
 	</target>
 
     <!--
