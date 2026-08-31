@@ -25,6 +25,7 @@ usage() {
   echo "relink  Relink to a site, e.g. %0 relink /var/www/mysite"
   echo "update  Push updates to the CDN (uses Akeeba Release Maker)"
   echo "vlimits Report the declared PHP and CMS version constraints"
+  echo "phpcompat Check PHP cross-version compatibility against the declared range"
 
   exit 255
 }
@@ -172,17 +173,20 @@ fi
 # This script is hard-linked in place (see the install command), therefore we cannot rely on its own location being
 # inside the buildfiles repository. We look for a buildfiles subdirectory next to the script — which is how the linked
 # copies see it — and only if that fails do we try two levels up, which is where the original script lives.
-if [[ "$1" == "vlimits" ]]; then
+if [[ "$1" == "vlimits" || "$1" == "phpcompat" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   if [[ -d "$SCRIPT_DIR/buildfiles/src/VersionLimit" ]]; then
-    VLIMITS_SCRIPT="$SCRIPT_DIR/buildfiles/src/VersionLimit/Reporter.php"
+    BUILDFILES_DIR="$SCRIPT_DIR/buildfiles"
   elif [[ -d "$SCRIPT_DIR/../../src/VersionLimit" ]]; then
-    VLIMITS_SCRIPT="$(cd "$SCRIPT_DIR/../.." && pwd)/src/VersionLimit/Reporter.php"
+    BUILDFILES_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
   else
     echo -e "${COLOR_LIGHT_RED}Cannot find the buildfiles repository; it must be a 'buildfiles' subdirectory next to this script.${COLOR_NC}" >&2
     exit 1
   fi
+
+  VLIMITS_SCRIPT="$BUILDFILES_DIR/src/VersionLimit/Reporter.php"
+  PHPCOMPAT_SCRIPT="$BUILDFILES_DIR/src/PhpCompat/Sweep.php"
 fi
 
 echo -e $COLOR_WHITE"All – Loop all Git repositories"$COLOR_NC
@@ -373,6 +377,29 @@ for d in *; do
     echo -ne $COLOR_CYAN
     printf '%-25s' "$d"
     echo -e "$COLOR_NC$ZZZ_COLOR$VLIMITS_INFO$COLOR_NC"
+    ;;
+
+  phpcompat)
+    # Repositories without a composer.json declare no PHP range, so there is nothing to check them against.
+    if [[ ! -f composer.json ]]; then
+      popd >/dev/null
+      continue
+    fi
+
+    PHPCOMPAT_INFO=$(php "$PHPCOMPAT_SCRIPT" "$PWD" --summary 2>&1)
+    PHPCOMPAT_STATUS=$?
+
+    if [[ $PHPCOMPAT_STATUS -eq 0 ]]; then
+      ZZZ_COLOR=$COLOR_LIGHT_GREEN
+    elif [[ $PHPCOMPAT_STATUS -eq 1 ]]; then
+      ZZZ_COLOR=$COLOR_BROWN
+    else
+      ZZZ_COLOR=$COLOR_LIGHT_RED
+    fi
+
+    echo -ne $COLOR_CYAN
+    printf '%-25s' "$d"
+    echo -e "$COLOR_NC$ZZZ_COLOR$PHPCOMPAT_INFO$COLOR_NC"
     ;;
 
   tag)

@@ -105,6 +105,42 @@
 	</target>
 
 	<!--
+	Report PHP features which are deprecated, removed, or not yet available anywhere in the PHP version range this
+	repository declares support for in composer.json.
+
+	The range is not a parameter. It is read from `require.php`, so this target checks each repository against the range
+	it actually claims — which is the only way a sweep across three dozen repositories means anything.
+
+	Findings already recorded in build/phpcompat-baseline.json are not reported; run `phing php-compat-baseline` to
+	record the current state after you have triaged it. The baseline exists so that a long tail of known, low-priority
+	findings cannot drown out the one new thing a commit just introduced.
+
+	Note the ceiling: the sniffs only carry data up to the PHP version named in PhpCompat\Sweep::SNIFF_CEILING. A range
+	which extends past it is clamped, and the target says so. Anything above the ceiling has to be covered by running
+	the test suite on that PHP version.
+	-->
+	<target name="php-compat" description="Report PHP compatibility problems across the declared PHP version range">
+		<exec executable="${system.php_cli}" checkreturn="false" passthru="true">
+			<arg value="${phing.dir.common}/../src/PhpCompat/Sweep.php" />
+			<arg path="${dirs.root}" />
+		</exec>
+	</target>
+
+	<!--
+	Record the current PHP compatibility findings as the baseline, so that `phing php-compat` reports only what is new.
+
+	Run this once, when adopting the sweep in a repository, and again after each round of fixes. The file it writes is
+	meant to shrink over time; if it ever grows, something regressed.
+	-->
+	<target name="php-compat-baseline" description="Record current PHP compatibility findings as the baseline">
+		<exec executable="${system.php_cli}" checkreturn="true" passthru="true">
+			<arg value="${phing.dir.common}/../src/PhpCompat/Sweep.php" />
+			<arg path="${dirs.root}" />
+			<arg value="--baseline" />
+		</exec>
+	</target>
+
+	<!--
 	Make the compatibility information our business site advertises agree with our declared version limits.
 
 	The PHP and CMS versions a released package is marked compatible with do not come from the release. They come from
