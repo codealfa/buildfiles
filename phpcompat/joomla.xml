@@ -1,0 +1,113 @@
+<?xml version="1.0"?>
+<!--
+  ~ @package   buildfiles
+  ~ @copyright Copyright (c)2010-2026 Nicholas K. Dionysopoulos / Akeeba Ltd
+  ~ @license   GNU General Public License version 3, or later
+  -->
+<ruleset name="PHPCompatibilityJoomla">
+	<description>PHP cross-version compatibility for Joomla! extensions.</description>
+
+	<rule ref="PHPCompatibility"/>
+
+	<!--
+	  Joomla! ships Symfony polyfills, so a number of "this function does not exist in your
+	  minimum PHP version" findings are false positives for extension code.
+
+	  Which polyfills are present depends on the Joomla! version:
+
+	    Joomla! 4.4  symfony/polyfill-php72, -php73, -php80, -php81
+	    Joomla! 5.x  symfony/polyfill-php83   (requires PHP 8.1, so 8.0/8.1 symbols are native)
+	    Joomla! 6.x  symfony/polyfill-php85   (requires PHP 8.1, so 8.0/8.1 symbols are native)
+
+	  Every Joomla! version an extension may still support therefore provides the PHP 8.0 and
+	  8.1 symbols below, either polyfilled or natively. Excluding them here is safe.
+
+	  NOTE: this list is deliberately explicit rather than a blanket exclusion of the
+	  NewFunctions/NewClasses/NewConstants sniffs. A genuinely unavailable symbol — say a PHP
+	  8.2+ function, which nothing polyfills — must still be reported.
+
+	  Regenerate the list from a Joomla! 4.4 installation with:
+	    grep -ohE "function [a-z_0-9]+|class [A-Za-z_0-9]+|define\('[A-Z_0-9]+'" \
+	      libraries/vendor/symfony/polyfill-php8{0,1}/{bootstrap.php,Php8*.php,Resources/stubs/*.php}
+	-->
+
+	<!-- symfony/polyfill-php80: functions -->
+	<rule ref="PHPCompatibility.FunctionUse.NewFunctions.fdivFound">
+		<severity>0</severity>
+	</rule>
+	<rule ref="PHPCompatibility.FunctionUse.NewFunctions.get_debug_typeFound">
+		<severity>0</severity>
+	</rule>
+	<rule ref="PHPCompatibility.FunctionUse.NewFunctions.get_resource_idFound">
+		<severity>0</severity>
+	</rule>
+	<rule ref="PHPCompatibility.FunctionUse.NewFunctions.preg_last_error_msgFound">
+		<severity>0</severity>
+	</rule>
+	<rule ref="PHPCompatibility.FunctionUse.NewFunctions.str_containsFound">
+		<severity>0</severity>
+	</rule>
+	<rule ref="PHPCompatibility.FunctionUse.NewFunctions.str_ends_withFound">
+		<severity>0</severity>
+	</rule>
+	<rule ref="PHPCompatibility.FunctionUse.NewFunctions.str_starts_withFound">
+		<severity>0</severity>
+	</rule>
+
+	<!-- symfony/polyfill-php80: classes -->
+	<rule ref="PHPCompatibility.Classes.NewClasses.attributeFound">
+		<severity>0</severity>
+	</rule>
+	<rule ref="PHPCompatibility.Classes.NewClasses.phptokenFound">
+		<severity>0</severity>
+	</rule>
+	<rule ref="PHPCompatibility.Classes.NewClasses.unhandledmatcherrorFound">
+		<severity>0</severity>
+	</rule>
+	<rule ref="PHPCompatibility.Classes.NewClasses.valueerrorFound">
+		<severity>0</severity>
+	</rule>
+
+	<!-- symfony/polyfill-php80: constants -->
+	<rule ref="PHPCompatibility.Constants.NewConstants.filter_validate_boolFound">
+		<severity>0</severity>
+	</rule>
+
+	<!-- symfony/polyfill-php81: functions -->
+	<rule ref="PHPCompatibility.FunctionUse.NewFunctions.array_is_listFound">
+		<severity>0</severity>
+	</rule>
+	<rule ref="PHPCompatibility.FunctionUse.NewFunctions.enum_existsFound">
+		<severity>0</severity>
+	</rule>
+
+	<!-- symfony/polyfill-php81: classes -->
+	<rule ref="PHPCompatibility.Classes.NewClasses.curlstringfileFound">
+		<severity>0</severity>
+	</rule>
+	<rule ref="PHPCompatibility.Classes.NewClasses.returntypewillchangeFound">
+		<severity>0</severity>
+	</rule>
+
+	<!-- symfony/polyfill-php81: constants -->
+	<rule ref="PHPCompatibility.Constants.NewConstants.mysqli_refresh_replicaFound">
+		<severity>0</severity>
+	</rule>
+
+	<!--
+	  Paths which must never be scanned in an Akeeba Joomla! extension.
+
+	  Third-party code we do not maintain, and the standalone error pages, which are
+	  deliberately written against ancient PHP so they can render an error on a server whose
+	  PHP is too old to parse the rest of the extension.
+	-->
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/media/*</exclude-pattern>
+	<exclude-pattern>*/assets/*</exclude-pattern>
+	<exclude-pattern>*/tmpl/ErrorPages/*</exclude-pattern>
+	<exclude-pattern>*/language/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg value="p"/>
+</ruleset>

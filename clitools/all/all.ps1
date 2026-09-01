@@ -30,6 +30,11 @@ function showUsage()
 	Write-Host "update   Push updates to the CDN (uses Akeeba Release Maker)"
 }
 
+function quotePowerShellArgument($value)
+{
+	return "'" + ($value -replace "'", "''") + "'"
+}
+
 if (!$operation)
 {
 	showUsage
@@ -280,12 +285,15 @@ Get-ChildItem -Directory | ForEach-Object {
 			$currentBranch = git branch --show-current
 			$remoteUrl = git config --get remote.origin.url
 			$currentTag = git describe --exact-match --tags 2>$null
+			$branchArgument = quotePowerShellArgument $currentBranch
+			$remoteArgument = quotePowerShellArgument $remoteUrl
+			$directoryArgument = quotePowerShellArgument $d
 
-			Write-Host "git clone --single-branch -b $currentBranch `"$remoteUrl`" $d"
+			Write-Host "git clone --single-branch -b $branchArgument $remoteArgument $directoryArgument"
 
 			if ($currentTag)
 			{
-				Write-Host "git -C $d switch -c $currentBranch"
+				Write-Host "git -C $directoryArgument switch -c $branchArgument"
 			}
 		}
 

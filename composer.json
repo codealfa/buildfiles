@@ -12,7 +12,8 @@
     "czproject/git-php": "^4.0.3",
     "knplabs/github-api": "^3.0",
     "nyholm/psr7": "^1.0",
-    "php-http/guzzle7-adapter": "^1.0"
+    "php-http/guzzle7-adapter": "^1.0",
+    "rector/rector": "^0.10"
   },
   "suggest": {
     "ext-curl": "*",
@@ -34,7 +35,9 @@
       "php": "8.1.999"
     },
     "allow-plugins": {
-      "php-http/discovery": true
+      "rector/extension-installer": true,
+      "php-http/discovery": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true
     }
   },
   "extra" : {
@@ -64,7 +67,8 @@
     ]
   },
   "require-dev": {
-    "phpcompatibility/php-compatibility": "^9.3",
-    "squizlabs/php_codesniffer": "^3"
+    "phpcompatibility/php-compatibility": "10.0.0-alpha2",
+    "phpcsstandards/phpcsutils": "^1.1.2",
+    "squizlabs/php_codesniffer": "^3.13.3"
   }
 }

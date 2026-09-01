@@ -169,6 +169,274 @@ If there was neither a changelog, nor a tag which can be used, the fake version 
 
 In any case, the string `-dev`, the date and time, the string `-rev`, and the short Git commit hash will be appended to the version number as version metadata.
 
+## PHP and CMS version constraints
+
+Every project declares the PHP and CMS versions it supports in a dozen different places: the installation script which
+refuses to install on an unsupported platform, the dispatcher which shows a friendly error instead of a fatal, the
+system plugin which needs to bail out early, and so on. Every one of them has to be updated whenever you drop support
+for an old PHP version, or add support for a new CMS release — and forgetting one of them is a bug your users find
+before you do.
+
+Instead, declare the supported versions **once**, in your repository's `composer.json` file, and let the build script
+propagate them to the rest of the codebase.
+
+### Setting it up
+
+Add an `akcompat` key to the `extra` section of your project's `composer.json`:
+
+```json
+{
+  "require": {
+    "php": ">=8.1.0 <8.7"
+  },
+  "extra": {
+    "akcompat": {
+      "limit_type": "joomla",
+      "limit": ">=5.3.0 <6.3",
+      "locations": [
+        {
+          "file": "component/script.something.php",
+          "type": "variable",
+          "marker": "$minimumPhp",
+          "value": "PHP_MIN"
+        },
+        {
+          "file": "component/script.something.php",
+          "type": "variable",
+          "marker": "$maximumPhp",
+          "value": "PHP_MAX"
+        },
+        {
+          "file": "component/script.something.php",
+          "type": "variable",
+          "marker": "$minimumJoomla",
+          "value": "LIMIT_MIN"
+        },
+        {
+          "file": "component/script.something.php",
+          "type": "variable",
+          "marker": "$maximumJoomla",
+          "value": "LIMIT_MAX"
+        },
+        {
+          "file": "component/backend/src/Dispatcher/Dispatcher.php",
+          "type": "variable",
+          "marker": "$minPHPVersion",
+          "value": "PHP_MIN"
+        },
+        {
+          "file": "plugins/system/whatever/src/Extension/Whatever.php",
+          "type": "variable",
+          "marker": "$minimumPhp",
+          "value": "PHP_MIN"
+        }
+      ]
+    }
+  }
+}
+```
+
+The supported versions themselves come from two places:
+
+* **PHP** from the standard Composer `require.php` key. You are declaring this anyway; it is not duplicated here.
+* **The CMS** from `extra.akcompat.limit`. It uses the same [Composer version constraint
+  syntax](https://getcomposer.org/doc/articles/versions.md) as `require.php`.
+
+`extra.akcompat.limit_type` tells the build script which CMS the limit refers to. Use `joomla` or `wordpress`. Omit
+both `limit` and `limit_type` for standalone and CLI applications, which run outside a CMS.
+
+> ⚠️ Always declare an **upper** limit, e.g. `<8.7`, not just a lower one. Without it the software claims to support
+> every future version of PHP and of the CMS, which is the very thing these declarations exist to prevent.
+
+### The declaration locations
+
+Each entry in `locations` describes one place in your codebase which repeats a version number:
+
+| Key      | Meaning                                                                                             |
+|----------|-----------------------------------------------------------------------------------------------------|
+| `file`   | The file to edit, relative to the repository root, i.e. the directory holding your `composer.json`.  |
+| `type`   | How the version is declared in that file. Only `variable` is currently supported.                    |
+| `marker` | What to look for. For the `variable` type this is the name of a PHP variable, or property.           |
+| `value`  | Which of the four version numbers to write there. See below.                                         |
+
+The `value` key takes one of the following:
+
+* `PHP_MIN` The minimum supported PHP version, e.g. `8.1.0`.
+* `PHP_MAX` One minor version **above** the maximum supported PHP version, e.g. `8.7`.
+* `LIMIT_MIN` The minimum supported CMS version, e.g. `5.3.0`.
+* `LIMIT_MAX` One minor version **above** the maximum supported CMS version, e.g. `6.3`.
+
+The `_MAX` values are deliberately one version *above* what you support; they are the first version which is **not**
+supported. Your code must therefore reject anything at, or above, them — `ge`, not `gt` — for both PHP and the CMS:
+
+```php
+if (!empty($maximumPhp) && version_compare(PHP_VERSION, $maximumPhp, 'ge'))
+{
+    // This PHP version is too new; we have not tested with it.
+}
+```
+
+The obvious alternative is declaring the last version you *do* support with an artificially high patch level, e.g.
+`5.4.9999`. Do not do that. It requires you to guess how high the patch level of a version which is not out yet will
+climb, and that guess is not yours to make: there are third party forks of Joomla which backport security fixes, and
+they start their patch numbering at 10000, sailing straight past any sentinel you may have picked. Naming the first
+version you do **not** support sidesteps the guesswork entirely, and says what you actually mean.
+
+> ℹ️ Joomla release trains end at x.4; the version which comes after 5.4 is 6.0, not 5.5. The build script knows this.
+> If your limit is `<=5.4`, or `<6.0`, the `LIMIT_MAX` you get is `6.0`.
+
+The `variable` type matches an assignment of a quoted string to the named variable or property, e.g.
+`protected $minimumPhp = '8.1.0';` or `$minimumPhp = "8.1.0";`. The quote style is preserved, and every declaration of
+that variable in the file is updated. Assignments through `$this`, e.g. `$this->minimumPhp = '8.1.0';`, are skipped
+unless you write the marker as `$this->minimumPhp`.
+
+### The Composer platform PHP version
+
+Most of our projects pin the PHP version Composer resolves dependencies against, in the `config.platform.php` key of
+their composer.json file:
+
+```json
+{
+  "require": {
+    "php": ">=8.1.0 <8.7"
+  },
+  "config": {
+    "platform": {
+      "php": "8.1.999"
+    }
+  }
+}
+```
+
+By convention this is the **minimum** supported PHP version family with an artificially high patch level, so that
+Composer only ever picks packages which run on the oldest PHP version we support. It repeats information already
+present in `require.php`, which means it silently drifts out of sync the moment you raise the minimum PHP version and
+forget to update it in both places.
+
+The build script therefore treats `config.platform.php` as a declaration location like any other, and keeps it in sync
+with `require.php` on its own. You do not need to list it in `extra.akcompat.locations`; it is picked up automatically.
+
+> ℹ️ This only ever *corrects* the key. If your composer.json has no `config.platform.php` key it is left alone — the
+> convention is not imposed on projects which do not follow it. The same goes for a project which declares no
+> `require.php`, where there is nothing to derive the value from.
+
+The composer.json file is edited in place, changing just that one value; it is not decoded and re-encoded, so your
+formatting and key order survive intact.
+
+> ⚠️ Changing the platform PHP version changes how Composer resolves your dependencies. Run `composer update` afterwards
+> so that your `composer.lock` reflects the new floor.
+
+### Applying the constraints
+
+The constraints are applied automatically every time you build your software with `phing git`. You can also apply them
+on their own:
+
+```
+phing version-constraints
+```
+
+This rewrites every declaration location whose version number is out of date, and reports what it changed. Files which
+are already up–to–date are left alone, so it is safe to run at any time, and it will not dirty your working copy for no
+reason.
+
+> ℹ️ If your repository has no `composer.json` file in its root, this does nothing at all. Nothing needs to be
+> configured, and nothing breaks, in projects which have not set this up.
+
+Finally, the `all` CLI tool shipped with this repository can report the supported version range of every one of your
+projects at a glance:
+
+```
+$ ./all vlimits
+akeebabackup             PHP 7.4 – 8.6, Joomla! 4.4 – 6.2
+someclitool              PHP 8.1 – 8.x
+```
+
+## Advertised compatibility on the download site
+
+Declaring the supported versions in `composer.json` settles what your software *does*. It says nothing about what your
+download site *claims* it does — and those are two separate pieces of information, kept in two separate places.
+
+When Akeeba Release Maker publishes a release it creates an ARS Item for each file, and says nothing at all about which
+PHP or CMS versions that file supports. Akeeba Release System works it out on its own: it looks for a published
+Automatic Item Description whose `packname` glob matches the file name, and copies that record's list of Environments
+onto the new Item. Those Environments are the compatibility badges a customer reads before deciding whether the
+download will work on their site.
+
+Which means the compatibility information of your *next* release is decided by records sitting on the site right now,
+long before anybody runs a release, and nothing keeps those records in step with `composer.json`. Raise the supported
+Joomla! version, publish, and the site happily goes on advertising the range you supported two releases ago.
+
+The `ars-environments` target closes that gap:
+
+```
+phing ars-environments
+```
+
+It cleans the release directory, builds a development release into it, finds the published Automatic Item Descriptions
+which apply to the packages it just built, and repoints them at the Environments your declared version limits actually
+call for — creating any Environment the site does not have yet.
+
+Run it whenever you change the supported version range, and before cutting a release, so that the release goes out
+advertising the truth. Use the dry run to see what it would do without touching anything:
+
+```
+phing ars-environments -Dars.environments.dryrun=1
+```
+
+### What it needs
+
+The site connection is the same one Akeeba Release Maker uses, so if you can already release, you are already
+configured. It reads `release.api.endpoint` and `release.api.token` — and `release.cacert`, if your site needs a custom
+CA bundle — from your privileged build properties.
+
+The ARS category is read from the `release.category` key of your `build/templates/release.yaml` file, which is the
+category the actual release will go into. If that file leaves the category as a `%%RELEASECATEGORY%%` build token, the
+`release.category` build property is used instead.
+
+The API token identifies a Joomla! user, and that user's permissions are enforced. It needs `core.manage` on `com_ars`
+to read anything, `core.edit` on the category to change its Automatic Item Descriptions, and `core.create` on `com_ars`
+itself to create Environments.
+
+### How the version range becomes a list of Environments
+
+An ARS Environment is a `platform/version` pair, e.g. `php/8.3` or `joomla/5.2`. Turning the range "PHP 7.4 to 8.6"
+into the list of families it covers means knowing that the PHP 7 release train ended at 7.4, which is something no
+version number can tell you. That comes from [endoflife.date](https://endoflife.date), whose answers are cached under
+this repository's `cache` directory for a week; a stale cache is used in preference to failing your build over a
+network hiccup.
+
+This gets the awkward cases right on its own. PHP 7 ends at 7.4 and PHP 6 never existed, so `>=5.6 <8.0` covers 5.6,
+7.0 through 7.4, and nothing in between. Joomla! 3 ran to 3.10, well past the x.4 the later trains stop at. And a range
+whose upper end has not been released yet still gets an Environment: `<8.7` creates `php/8.6` whether or not PHP 8.6
+exists, because that is what you have declared support for.
+
+> ℹ️ **WordPress is different.** WordPress Environments are open ended by design: `wordpress/6.0+` means "WordPress 6.0
+> or any later version, including later major versions". One Environment therefore covers the whole supported range,
+> so a WordPress project gets exactly one, built from its *minimum* supported version. The upper limit does not come
+> into it — no WordPress Environment has ever expressed one.
+
+### What it will and will not touch
+
+Only the platforms you have declared an opinion about are managed: `php`, plus whichever CMS your `limit_type` names.
+Within those, the record ends up with exactly the Environments your range calls for, so an Environment you no longer
+support is removed as well as a missing one being added.
+
+Everything else on the record is left exactly as it was found. A documentation package carrying `pdf/1.4`, a record
+declaring `linux/x86-64`, a `wordpress/6.0+` on a Joomla!-only project — none of it is your version limits' business,
+and none of it is touched.
+
+The target matches files the same way ARS itself does, so what you see is what the release will get: an `fnmatch()` of
+`packname` against the file's base name, unpublished records ignored entirely, and an empty `packname` never matching
+anything. Where several records match one file it tells you which one ARS will actually apply, since ARS uses the first
+match by ID and ignores the rest.
+
+Running it twice in a row changes nothing the second time, and it fails loudly rather than quietly if no published
+Automatic Item Description matches the packages you built — because that means your next release would go out with no
+compatibility information at all.
+
+> ℹ️ If your repository has no `composer.json` file in its root, this does nothing at all, the same as the version
+> constraints themselves.
+
 ## Joomla! components
 
 The Common Phing Script is designed to easily build installation packages for Joomla! components without much fussing around.

@@ -36,10 +36,13 @@
 	<property name="site" value="${build.relink_site}" />
 	<property name="sitewp" value="${build.relink_sitewp}" />
 
-	<!-- ### Overrideable parameters -->
-	<property name="build.package_base_name" value="${build.component}" />
+	<!-- ### Release management -->
+	<!-- Security context: ``, `none`, `low`, `medium`, `high`, `critical` -->
+	<property name="security" value="" />
 
     <!-- Load externally defined properties -->
+	<!-- ### Overrideable parameters -->
+	<property name="build.package_base_name" value="${build.component}" />
     <!-- ### Default properties -->
     <property file="${phing.dir.common}/default.properties" />
     <!-- ### Common properties, above the working copy's root -->
@@ -59,6 +62,8 @@
 	<taskdef name="wordpressentrypoint" classname="tasks\WordPressEntryPointTask"/>
 	<taskdef name="GitHubAsset" classname="tasks\GitHubAssetTask" />
 	<taskdef name="GitHubRelease" classname="tasks\GitHubReleaseTask" />
+	<taskdef name="ApplyVersionConstraints" classname="tasks\ApplyVersionConstraintsTask" />
+	<taskdef name="arsenvironments" classname="tasks\ArsEnvironmentsTask" />
 	<taskdef name="autoversion" classname="tasks\AutoVersionTask" />
 	<taskdef name="bladeawf" classname="tasks\BladeAwfTask" />
 	<taskdef name="curlsftp" classname="tasks\CurlSftpTask" />
@@ -93,7 +98,79 @@
 	number to make a numbered version release, e.g. `phing git -Dversion=1.2.3` to build version 1.2.3
 	-->
 	<target name="git" description="Makes only packages, not the documentation"
-			depends="new-release,setup-properties,component-packages">
+			depends="new-release,setup-properties,version-constraints,component-packages">
+	</target>
+
+	<!--
+	Apply the PHP and CMS version constraints declared in the repository's composer.json file to the codebase.
+
+	This does nothing unless there is a composer.json file in the repository root, next to the build.xml file which
+	imports this file.
+	-->
+	<target name="version-constraints" description="Apply the version constraints declared in composer.json">
+		<ApplyVersionConstraints repositoryRoot="${dirs.root}" />
+	</target>
+
+	<!--
+	Report PHP features which are deprecated, removed, or not yet available anywhere in the PHP version range this
+	repository declares support for in composer.json.
+
+	The range is not a parameter. It is read from `require.php`, so this target checks each repository against the range
+	it actually claims — which is the only way a sweep across three dozen repositories means anything.
+
+	Findings already recorded in build/phpcompat-baseline.json are not reported; run `phing php-compat-baseline` to
+	record the current state after you have triaged it. The baseline exists so that a long tail of known, low-priority
+	findings cannot drown out the one new thing a commit just introduced.
+
+	Note the ceiling: the sniffs only carry data up to the PHP version named in PhpCompat\Sweep::SNIFF_CEILING. A range
+	which extends past it is clamped, and the target says so. Anything above the ceiling has to be covered by running
+	the test suite on that PHP version.
+	-->
+	<target name="php-compat" description="Report PHP compatibility problems across the declared PHP version range">
+		<exec executable="${system.php_cli}" checkreturn="false" passthru="true">
+			<arg value="${phing.dir.common}/../src/PhpCompat/Sweep.php" />
+			<arg path="${dirs.root}" />
+		</exec>
+	</target>
+
+	<!--
+	Record the current PHP compatibility findings as the baseline, so that `phing php-compat` reports only what is new.
+
+	Run this once, when adopting the sweep in a repository, and again after each round of fixes. The file it writes is
+	meant to shrink over time; if it ever grows, something regressed.
+	-->
+	<target name="php-compat-baseline" description="Record current PHP compatibility findings as the baseline">
+		<exec executable="${system.php_cli}" checkreturn="true" passthru="true">
+			<arg value="${phing.dir.common}/../src/PhpCompat/Sweep.php" />
+			<arg path="${dirs.root}" />
+			<arg value="--baseline" />
+		</exec>
+	</target>
+
+	<!--
+	Make the compatibility information our business site advertises agree with our declared version limits.
+
+	The PHP and CMS versions a released package is marked compatible with do not come from the release. They come from
+	the Automatic Item Descriptions sitting in the Akeeba Release System category this repository releases into, which
+	ARS applies to each new Item by matching its `packname` glob against the file name. Nothing keeps those records in
+	step with the version limits declared in composer.json — so this target does.
+
+	It depends on `new-release` and `git` on purpose: which Automatic Item Descriptions apply is decided by the names of
+	the files in the release directory, so we clear that directory, build a development release into it, and check the
+	records against what we actually built.
+
+	Run `phing ars-environments -Dars.environments.dryrun=1` to see what would change without changing anything.
+	-->
+	<target name="ars-environments" depends="new-release,git"
+			description="Sync the advertised PHP/CMS compatibility of the next release with composer.json">
+		<arsenvironments repositoryRoot="${dirs.root}"
+						 releaseDir="${dirs.release}"
+						 releaseYaml="${dirs.templates}/release.yaml"
+						 category="${release.category}"
+						 endpoint="${release.api.endpoint}"
+						 token="${release.api.token}"
+						 cacert="${release.cacert}"
+						 dryRun="${ars.environments.dryrun}" />
 	</target>
 
     <!--
@@ -437,6 +514,8 @@
 	<!--
     Uses Akeeba Release maker to deploy new releases to a remote Akeeba Release System installation.
 
+	security					Security context: ``, `none`, `low`, `medium`, `high`, `critical`
+
     release.method				json, yaml or github
 
     release.source              Absolute path and filename to the release.json prototype we're going to use
@@ -534,6 +613,7 @@
                 <replacetokens begintoken="##" endtoken="##">
                     <token key="DATE" value="${build.date}" />
                     <token key="VERSION" value="${version}" />
+                    <token key="SECURITY" value="${security}" />
 
                     <token key="RELEASEDIR" value="${dirs.release.translated}" />
                     <token key="REPODIR" value="${dirs.root.translated}" />
@@ -607,7 +687,7 @@
         </phingcall>
     </target>
 
-	<target name="release-yaml" depends="setup-properties" description="Use Akeeba Release Maker 2 to deploy software">
+	<target name="release-yaml" depends="setup-properties" description="Use Akeeba Release Maker to deploy software">
 		<phingcall target="onBeforeRelease">
 		</phingcall>
 
@@ -627,6 +707,7 @@
 				<replacetokens begintoken="%%" endtoken="%%">
 					<token key="DATE" value="${build.date}" />
 					<token key="VERSION" value="${version}" />
+					<token key="SECURITY" value="${security}" />
 
 					<token key="RELEASEDIR" value="${dirs.release}" />
 					<token key="RELEASEACCESS" value="${release.access}" />
@@ -783,9 +864,15 @@
 
 	This is a modified release task, making sure there is no valid version or core/pro/pdf file upload pattern.
 	-->
-	<target name="update" depends="setup-properties" description="Use Akeeba Release Maker to deploy software">
+	<target name="update" depends="setup-properties" description="Use Akeeba Release Maker to deploy software udpates only">
 		<phingcall target="release">
 			<property name="release.steps" value="${release.steps_update}" />
+		</phingcall>
+	</target>
+
+	<target name="debug_release" depends="setup-properties" description="Use Akeeba Release Maker to generate the release file only; no deployment">
+		<phingcall target="release">
+			<property name="release.steps" value="${release.steps_prepare}" />
 		</phingcall>
 	</target>
 
