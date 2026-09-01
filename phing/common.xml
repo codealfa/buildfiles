@@ -1032,6 +1032,19 @@
 						</replacetokens>
 					</filterchain>
 				</copy>
+				<copy file="${dirs.templates}/${build.template_xml}" tofile="${dirs.component}/backend/${build.component}.xml" overwrite="true">
+					<filterchain>
+						<replacetokens begintoken="##" endtoken="##">
+							<token key="DATE" value="${build.date}" />
+							<token key="VERSION" value="${version}" />
+							<token key="PRO" value="${build.is_pro}" />
+							<token key="MINJOOMLA" value="${build.min_joomla}" />
+							<token key="MAXJOOMLA" value="${build.max_joomla}" />
+							<token key="MINWP" value="${build.min_wordpress}" />
+							<token key="MAXWP" value="${build.max_wordpress}" />
+						</replacetokens>
+					</filterchain>
+				</copy>
 			</then>
 		</if>
 
