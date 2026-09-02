@@ -1047,6 +1047,9 @@
 			<available file="${dirs.component}" type="dir" />
 			<then>
 				<!-- Build the Core package -->
+				<phingcall target="update-edition-class">
+					<property name="build.is_pro" value="0" />
+				</phingcall>
 				<phingcall target="package-com-builder">
 					<property name="build.is_pro" value="0" />
 				</phingcall>
@@ -1055,10 +1058,48 @@
 					<equals arg1="${build.has_pro}" arg2="1" />
 					<then>
 						<!-- Build the Pro package -->
+						<phingcall target="update-edition-class">
+							<property name="build.is_pro" value="1" />
+						</phingcall>
 						<phingcall target="package-com-builder">
 							<property name="build.is_pro" value="1" />
 						</phingcall>
 					</then>
+				</if>
+			</then>
+		</if>
+	</target>
+
+	<target name="update-edition-class" description="Set the platform edition for the package being built">
+		<if>
+			<available file="${dirs.component}/backend/src/Service/Edition.php" />
+			<then>
+				<if>
+					<equals arg1="${build.is_pro}" arg2="1" />
+					<then>
+						<reflexive>
+							<fileset dir="${dirs.component}/backend/src">
+								<include name="Service/Edition.php" />
+							</fileset>
+							<filterchain>
+								<replaceregexp>
+									<regexp pattern="(public function isPro\(\): bool\s*\{\s*return )false;" replace="\1true;" />
+								</replaceregexp>
+							</filterchain>
+						</reflexive>
+					</then>
+					<else>
+						<reflexive>
+							<fileset dir="${dirs.component}/backend/src">
+								<include name="Service/Edition.php" />
+							</fileset>
+							<filterchain>
+								<replaceregexp>
+									<regexp pattern="(public function isPro\(\): bool\s*\{\s*return )true;" replace="\1false;" />
+								</replaceregexp>
+							</filterchain>
+						</reflexive>
+					</else>
 				</if>
 			</then>
 		</if>
