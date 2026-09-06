@@ -1040,6 +1040,38 @@
 	</target>
 
 	<!--
+	Regenerate a repo-supplied, gitignored build-metadata file (e.g. version + build date)
+	from a repo-supplied token template. Opt-in: a repo enables this by providing both
+	${dirs.templates}/build-meta.php and a buildmeta.destination property (see
+	default.properties). Repos that set neither are unaffected. Runs on every build,
+	release or dev, using whatever ${version} setup-properties resolved, so the
+	destination file never needs to be committed.
+	-->
+	<target name="update-build-meta" depends="setup-properties">
+		<if>
+			<and>
+				<available file="${dirs.templates}/build-meta.php" />
+				<not>
+					<equals arg1="${buildmeta.destination}" arg2="" trim="true" />
+				</not>
+			</and>
+			<then>
+				<tstamp>
+					<format property="build.date" pattern="%Y-%m-%d" />
+				</tstamp>
+				<copy file="${dirs.templates}/build-meta.php" tofile="${buildmeta.destination}" overwrite="true">
+					<filterchain>
+						<replacetokens begintoken="##" endtoken="##">
+							<token key="VERSION" value="${version}" />
+							<token key="DATE" value="${build.date}" />
+						</replacetokens>
+					</filterchain>
+				</copy>
+			</then>
+		</if>
+	</target>
+
+	<!--
 	Generates the component installation ZIP files for the Pro and Core releases
 	-->
 	<target name="package-com" description="Builds the component">
