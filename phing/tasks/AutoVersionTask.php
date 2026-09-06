@@ -7,6 +7,10 @@
 
 namespace tasks;
 
+require_once __DIR__ . '/../../vendor/autoload.php';
+
+use Composer\Semver\Comparator;
+
 /**
  * Git latest tree hash to Phing property
  *
@@ -128,7 +132,7 @@ class AutoVersionTask extends \Phing\Task
 		 */
 		elseif (
 			(!empty($latestGitTag) && empty($changelogVersion))
-			|| version_compare($changelogVersion, $latestGitTag, 'le')
+			|| $this->isLessThanOrEqualTo($changelogVersion, $latestGitTag)
 		)
 		{
 			$version = $this->autoBump
@@ -179,11 +183,139 @@ class AutoVersionTask extends \Phing\Task
 		$this->autoBump = $autoBump;
 	}
 
+	/**
+	 * Compares two version strings using composer/semver, falling back to version_compare() for values that
+	 * aren't valid semantic versions (e.g. a changelog entry with an unexpected format).
+	 */
+	private function isLessThanOrEqualTo(string $version1, string $version2): bool
+	{
+		try
+		{
+			return Comparator::lessThanOrEqualTo($version1, $version2);
+		}
+		catch (\UnexpectedValueException $e)
+		{
+			return version_compare($version1, $version2, 'le');
+		}
+	}
+
+	/**
+	 * Resolves the branch being built, preferring CI-provided environment variables (which are also correct for
+	 * pull request builds, where the working copy is a detached HEAD / merge ref) over asking Git directly.
+	 */
+	private function getCurrentBranch(): string
+	{
+		$branch = getenv('GITHUB_HEAD_REF')
+			?: getenv('GITHUB_REF_NAME')
+			?: getenv('CI_MERGE_REQUEST_SOURCE_BRANCH_NAME')
+			?: getenv('CI_COMMIT_BRANCH')
+			?: getenv('CI_COMMIT_REF_NAME')
+			?: '';
+
+		if (!empty($branch))
+		{
+			return trim($branch);
+		}
+
+		$workingCopy = $this->workingCopy ?: $this->project->getProperty('dirs.root') ?: '../';
+
+		if ($workingCopy == '..')
+		{
+			$workingCopy = '../';
+		}
+
+		$cwd         = getcwd();
+		$workingCopy = realpath($workingCopy);
+
+		chdir($workingCopy);
+		exec('git rev-parse --abbrev-ref HEAD', $out);
+		chdir($cwd);
+
+		return empty($out) ? '' : trim($out[0]);
+	}
+
+	/**
+	 * Reads a comma-separated list property (e.g. `branchversion.stable`), falling back to sensible defaults so
+	 * repositories that don't set these properties still get correct behaviour.
+	 */
+	private function getBranchList(string $property, array $default): array
+	{
+		$value = $this->project->getProperty($property);
+
+		if (empty($value))
+		{
+			return $default;
+		}
+
+		return array_values(array_filter(array_map('trim', explode(',', $value))));
+	}
+
+	/**
+	 * Classifies a branch name as 'stable' (numbered releases are cut from here; dev builds keep today's
+	 * timestamp + commit suffix) or 'branch' (dev builds are suffixed with the branch name instead, so builds
+	 * from `development` and every `feature/*`, `bugfix/*`, `hotfix/*` branch never collide with one another or
+	 * with a stable dev build). Anything unrecognised — an empty/detached HEAD, or a branch naming convention
+	 * this hasn't been configured for — falls back to 'stable' so behaviour is unchanged by default.
+	 */
+	private function classifyBranch(string $branch): string
+	{
+		if ($branch === '' || $branch === 'HEAD')
+		{
+			return 'stable';
+		}
+
+		if (in_array($branch, $this->getBranchList('branchversion.stable', ['master', 'main']), true))
+		{
+			return 'stable';
+		}
+
+		if (in_array($branch, $this->getBranchList('branchversion.integration', ['development', 'develop']), true))
+		{
+			return 'branch';
+		}
+
+		foreach ($this->getBranchList('branchversion.prefixes', ['feature', 'bugfix', 'hotfix']) as $prefix)
+		{
+			if (preg_match('#^' . preg_quote($prefix, '#') . '[-/]#i', $branch))
+			{
+				return 'branch';
+			}
+		}
+
+		return 'stable';
+	}
+
+	/**
+	 * Turns a branch name into a version-string-safe identifier, e.g. `feature/Cache Artifact-Dedup` becomes
+	 * `feature-cache-artifact-dedup`.
+	 */
+	private function slugifyBranch(string $branch): string
+	{
+		$slug = strtolower($branch);
+		$slug = preg_replace('#[^a-z0-9]+#', '-', $slug);
+
+		return trim($slug, '-');
+	}
+
 	private function bumpVersion(string $version, bool $onlyAddDev = false): string
 	{
 		$commitHash = $this->getLatestCommitHash();
-		$devSuffix  = '-dev' . gmdate('YmdHi')
-			. (empty($commitHash) || !$this->useCommitHash ? '' : ('-rev' . $commitHash));
+		$branch     = $this->getCurrentBranch();
+
+		if ($this->classifyBranch($branch) === 'stable')
+		{
+			$devSuffix = '-dev' . gmdate('YmdHi')
+				. (empty($commitHash) || !$this->useCommitHash ? '' : ('-rev' . $commitHash));
+		}
+		else
+		{
+			$identifiers = array_filter([
+				$this->slugifyBranch($branch),
+				(empty($commitHash) || !$this->useCommitHash) ? '' : $commitHash,
+			]);
+
+			$devSuffix = '-dev+' . implode('.', $identifiers);
+		}
 
 		if (!preg_match('/((\d+\.?)+)(((a|alpha|b|beta|rc|dev)\d)*(-[^\s]*)?)?/', $version, $matches))
 		{

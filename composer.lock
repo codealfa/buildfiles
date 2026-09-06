@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4a0503a28b1be4f5fa18a78cc2b1a78c",
+    "content-hash": "a9b2278a7fe443dd9be5699924ba3523",
     "packages": [
         {
             "name": "akeeba/s3",
